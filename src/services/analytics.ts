@@ -1,136 +1,242 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
-import { SettingsManager } from './settings';
-
-export interface SessionData {
-  startTime: number;
-  endTime?: number;
-  duration: number;
-}
-
-export interface AnalyticsData {
-  sessions: SessionData[];
-  totalDuration: number;
-  lastSessionDate: string;
-}
-
-export interface Stats {
-  sessionsToday: number;
-  totalSessions: number;
-  currentSessionDuration: number;
-  totalDuration: number;
-  averageSessionDuration: number;
-}
+import { UsageReader } from './usageReader';
+import {
+  UsageEntry,
+  UsageStats,
+  TokenCounts,
+  BurnRate,
+  calculateCost,
+  getTotalTokens
+} from '../types/usage';
 
 export class AnalyticsService {
-  private analyticsPath: string;
-  private data: AnalyticsData;
-  private currentSession: SessionData | null = null;
-  private sessionTimer: NodeJS.Timeout | null = null;
+  private usageReader: UsageReader;
+  private cachedStats: UsageStats | null = null;
+  private lastUpdate: number = 0;
+  private updateInterval = 60000; // Update cache every 60 seconds
+  private appStartTime: number;
 
-  constructor(private settingsManager: SettingsManager) {
-    const userDataPath = app.getPath('userData');
-    this.analyticsPath = path.join(userDataPath, 'analytics.json');
-    this.data = this.loadAnalytics();
+  constructor() {
+    this.usageReader = new UsageReader();
+    this.appStartTime = Date.now();
+
+    // Initial stats calculation
+    this.refreshStats();
   }
 
-  private loadAnalytics(): AnalyticsData {
+  /**
+   * Refresh statistics from Claude usage data
+   */
+  async refreshStats(): Promise<void> {
     try {
-      if (fs.existsSync(this.analyticsPath)) {
-        const data = fs.readFileSync(this.analyticsPath, 'utf-8');
-        return JSON.parse(data);
-      }
+      // Get usage data from last 8 days (192 hours)
+      const cutoffDate = new Date(Date.now() - 192 * 60 * 60 * 1000);
+      const entries = await this.usageReader.readAllUsageData(cutoffDate);
+
+      this.cachedStats = this.calculateStats(entries);
+      this.lastUpdate = Date.now();
     } catch (error) {
-      console.error('Failed to load analytics:', error);
+      console.error('Failed to refresh stats:', error);
+
+      // Return empty stats if there's an error
+      if (!this.cachedStats) {
+        this.cachedStats = this.getEmptyStats();
+      }
     }
-    return {
-      sessions: [],
-      totalDuration: 0,
-      lastSessionDate: new Date().toISOString()
+  }
+
+  /**
+   * Calculate statistics from usage entries
+   */
+  private calculateStats(entries: UsageEntry[]): UsageStats {
+    const now = Date.now();
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    // Initialize counters
+    let totalTokensAllTime = 0;
+    let totalTokensToday = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCacheTokens = 0;
+    let totalCostAllTime = 0;
+    let totalCostToday = 0;
+    let messagesCount = entries.length;
+    let messagesToday = 0;
+
+    const modelBreakdown: { [model: string]: TokenCounts } = {};
+    const sessionBlocks: Set<string> = new Set();
+
+    // Process each entry
+    for (const entry of entries) {
+      const entryDate = new Date(entry.timestamp);
+      const tokens: TokenCounts = {
+        input_tokens: entry.input_tokens || 0,
+        output_tokens: entry.output_tokens || 0,
+        cache_creation_tokens: entry.cache_creation_tokens || 0,
+        cache_read_tokens: entry.cache_read_tokens || 0
+      };
+
+      const totalTokens = getTotalTokens(tokens);
+      const cost = entry.cost_usd || entry.cost || calculateCost(tokens, entry.model);
+
+      // Update totals
+      totalTokensAllTime += totalTokens;
+      totalInputTokens += tokens.input_tokens;
+      totalOutputTokens += tokens.output_tokens;
+      totalCacheTokens += tokens.cache_creation_tokens + tokens.cache_read_tokens;
+      totalCostAllTime += cost;
+
+      // Today's stats
+      if (entryDate >= todayStart) {
+        totalTokensToday += totalTokens;
+        totalCostToday += cost;
+        messagesToday++;
+      }
+
+      // Model breakdown
+      if (!modelBreakdown[entry.model]) {
+        modelBreakdown[entry.model] = {
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_creation_tokens: 0,
+          cache_read_tokens: 0
+        };
+      }
+      modelBreakdown[entry.model].input_tokens += tokens.input_tokens;
+      modelBreakdown[entry.model].output_tokens += tokens.output_tokens;
+      modelBreakdown[entry.model].cache_creation_tokens += tokens.cache_creation_tokens;
+      modelBreakdown[entry.model].cache_read_tokens += tokens.cache_read_tokens;
+
+      // Count unique 5-hour session blocks
+      const blockKey = this.getSessionBlockKey(entryDate);
+      sessionBlocks.add(blockKey);
+    }
+
+    // Calculate current session stats (entries in the last 5 hours)
+    const sessionStart = new Date(now - 5 * 60 * 60 * 1000);
+    const currentSessionEntries = entries.filter(e => new Date(e.timestamp) >= sessionStart);
+
+    let currentSessionTokens = 0;
+    let currentSessionCost = 0;
+    for (const entry of currentSessionEntries) {
+      const tokens: TokenCounts = {
+        input_tokens: entry.input_tokens || 0,
+        output_tokens: entry.output_tokens || 0,
+        cache_creation_tokens: entry.cache_creation_tokens || 0,
+        cache_read_tokens: entry.cache_read_tokens || 0
+      };
+      currentSessionTokens += getTotalTokens(tokens);
+      currentSessionCost += entry.cost_usd || entry.cost || calculateCost(tokens, entry.model);
+    }
+
+    // Calculate burn rate
+    const sessionDurationMinutes = (now - sessionStart.getTime()) / (1000 * 60);
+    const burnRate: BurnRate = {
+      tokens_per_minute: sessionDurationMinutes > 0 ? currentSessionTokens / sessionDurationMinutes : 0,
+      cost_per_hour: sessionDurationMinutes > 0 ? (currentSessionCost / sessionDurationMinutes) * 60 : 0
     };
-  }
 
-  private saveAnalytics(): void {
-    try {
-      const dir = path.dirname(this.analyticsPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(this.analyticsPath, JSON.stringify(this.data, null, 2));
-    } catch (error) {
-      console.error('Failed to save analytics:', error);
-    }
-  }
-
-  startSession(): void {
-    this.currentSession = {
-      startTime: Date.now(),
-      duration: 0
-    };
-
-    // Update session duration every second
-    this.sessionTimer = setInterval(() => {
-      if (this.currentSession) {
-        this.currentSession.duration = Date.now() - this.currentSession.startTime;
-      }
-    }, 1000);
-  }
-
-  endSession(): void {
-    if (this.currentSession) {
-      this.currentSession.endTime = Date.now();
-      this.currentSession.duration = this.currentSession.endTime - this.currentSession.startTime;
-
-      this.data.sessions.push(this.currentSession);
-      this.data.totalDuration += this.currentSession.duration;
-      this.data.lastSessionDate = new Date().toISOString();
-
-      this.saveAnalytics();
-
-      if (this.sessionTimer) {
-        clearInterval(this.sessionTimer);
-        this.sessionTimer = null;
-      }
-
-      this.currentSession = null;
-    }
-  }
-
-  getStats(): Stats {
-    const today = new Date().toDateString();
-    const sessionsToday = this.data.sessions.filter(session => {
-      return new Date(session.startTime).toDateString() === today;
-    }).length;
-
-    const currentSessionDuration = this.currentSession?.duration || 0;
-    const averageSessionDuration = this.data.sessions.length > 0
-      ? this.data.totalDuration / this.data.sessions.length
-      : 0;
+    // Session counts
+    const todayBlocks = entries
+      .filter(e => new Date(e.timestamp) >= todayStart)
+      .map(e => this.getSessionBlockKey(new Date(e.timestamp)));
+    const sessionsToday = new Set(todayBlocks).size;
 
     return {
       sessionsToday,
-      totalSessions: this.data.sessions.length,
-      currentSessionDuration,
-      totalDuration: this.data.totalDuration,
-      averageSessionDuration
+      totalSessions: sessionBlocks.size,
+      currentSessionDuration: now - this.appStartTime,
+      totalTokensToday,
+      totalTokensAllTime,
+      totalInputTokens,
+      totalOutputTokens,
+      totalCacheTokens,
+      totalCostToday,
+      totalCostAllTime,
+      currentSessionTokens,
+      currentSessionCost,
+      currentBurnRate: burnRate,
+      messagesCount,
+      messagesToday,
+      modelBreakdown
     };
   }
 
-  resetStats(): void {
-    this.data = {
-      sessions: [],
-      totalDuration: 0,
-      lastSessionDate: new Date().toISOString()
-    };
-    this.saveAnalytics();
+  /**
+   * Get a session block key (5-hour blocks)
+   */
+  private getSessionBlockKey(date: Date): string {
+    const blockSize = 5 * 60 * 60 * 1000; // 5 hours in ms
+    const blockIndex = Math.floor(date.getTime() / blockSize);
+    return `block_${blockIndex}`;
   }
 
-  // Get sessions for a specific date range
-  getSessionsInRange(startDate: Date, endDate: Date): SessionData[] {
-    return this.data.sessions.filter(session => {
-      const sessionDate = new Date(session.startTime);
-      return sessionDate >= startDate && sessionDate <= endDate;
+  /**
+   * Get current statistics
+   */
+  async getStats(): Promise<UsageStats> {
+    // Refresh if cache is stale
+    if (Date.now() - this.lastUpdate > this.updateInterval) {
+      await this.refreshStats();
+    }
+
+    return this.cachedStats || this.getEmptyStats();
+  }
+
+  /**
+   * Get statistics synchronously (uses cache)
+   */
+  getStatsSync(): UsageStats {
+    return this.cachedStats || this.getEmptyStats();
+  }
+
+  /**
+   * Get empty stats structure
+   */
+  private getEmptyStats(): UsageStats {
+    return {
+      sessionsToday: 0,
+      totalSessions: 0,
+      currentSessionDuration: Date.now() - this.appStartTime,
+      totalTokensToday: 0,
+      totalTokensAllTime: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalCacheTokens: 0,
+      totalCostToday: 0,
+      totalCostAllTime: 0,
+      currentSessionTokens: 0,
+      currentSessionCost: 0,
+      currentBurnRate: {
+        tokens_per_minute: 0,
+        cost_per_hour: 0
+      },
+      messagesCount: 0,
+      messagesToday: 0,
+      modelBreakdown: {}
+    };
+  }
+
+  /**
+   * Setup file watching to auto-refresh stats
+   */
+  setupAutoRefresh(callback?: () => void): fs.FSWatcher[] {
+    // Watch for file changes
+    const watchers = this.usageReader.watchForChanges(async () => {
+      console.log('Usage data changed, refreshing stats...');
+      await this.refreshStats();
+      if (callback) callback();
     });
+
+    // Also refresh periodically
+    setInterval(async () => {
+      await this.refreshStats();
+      if (callback) callback();
+    }, this.updateInterval);
+
+    return watchers;
   }
 }

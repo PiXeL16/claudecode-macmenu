@@ -1,4 +1,4 @@
-import { app, Tray, Menu, nativeImage } from 'electron';
+import { app, Tray, Menu, nativeImage, Notification } from 'electron';
 import * as path from 'path';
 import { AnalyticsService } from './services/analytics';
 import { NotificationService } from './services/notification';
@@ -8,6 +8,7 @@ let tray: Tray | null = null;
 let analyticsService: AnalyticsService;
 let notificationService: NotificationService;
 let settingsManager: SettingsManager;
+let lastMessageCount = 0;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -28,11 +29,31 @@ app.on('window-all-closed', (e: Event) => {
 
 function initializeServices() {
   settingsManager = new SettingsManager();
-  analyticsService = new AnalyticsService(settingsManager);
+  analyticsService = new AnalyticsService();
   notificationService = new NotificationService(settingsManager);
 
-  // Start session tracking
-  analyticsService.startSession();
+  // Setup auto-refresh and file watching
+  analyticsService.setupAutoRefresh(() => {
+    updateTrayMenu();
+    checkForNewMessages();
+  });
+}
+
+function checkForNewMessages() {
+  const stats = analyticsService.getStatsSync();
+
+  // Check if there are new messages (potential task completion)
+  if (stats.messagesCount > lastMessageCount && lastMessageCount > 0) {
+    const newMessages = stats.messagesCount - lastMessageCount;
+    console.log(`Detected ${newMessages} new message(s)`);
+
+    // Notify user of task completion
+    notificationService.notifyTaskComplete(
+      `Claude Code completed ${newMessages} message${newMessages > 1 ? 's' : ''}`
+    );
+  }
+
+  lastMessageCount = stats.messagesCount;
 }
 
 function createTray() {
@@ -47,13 +68,23 @@ function createTray() {
   // Update menu periodically to show live stats
   setInterval(() => {
     updateTrayMenu();
-  }, 60000); // Update every minute
+  }, 30000); // Update every 30 seconds
 }
 
 function createTrayIcon(): nativeImage {
   // Create a simple 16x16 template icon
   // Template icons automatically adapt to light/dark mode
   const iconPath = path.join(__dirname, '../assets/icon-template.png');
+
+  // Try to load the icon, otherwise create an empty one
+  try {
+    const icon = nativeImage.createFromPath(iconPath);
+    if (!icon.isEmpty()) {
+      return icon;
+    }
+  } catch (error) {
+    console.log('Icon file not found, using empty icon');
+  }
 
   // For now, create a simple representation
   // In production, you'd want a proper icon file
@@ -64,29 +95,85 @@ function createTrayIcon(): nativeImage {
 function updateTrayMenu() {
   if (!tray) return;
 
-  const stats = analyticsService.getStats();
+  const stats = analyticsService.getStatsSync();
   const settings = settingsManager.getSettings();
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: '📊 Claude Code Statistics',
+      label: '📊 Claude Code Usage',
       enabled: false
     },
     { type: 'separator' },
     {
-      label: `Sessions Today: ${stats.sessionsToday}`,
+      label: '💬 Messages',
       enabled: false
     },
     {
-      label: `Total Sessions: ${stats.totalSessions}`,
+      label: `  Today: ${stats.messagesToday}`,
       enabled: false
     },
     {
-      label: `Active Time: ${formatDuration(stats.currentSessionDuration)}`,
+      label: `  Total: ${stats.messagesCount}`,
+      enabled: false
+    },
+    { type: 'separator' },
+    {
+      label: '🎯 Tokens',
       enabled: false
     },
     {
-      label: `Total Time: ${formatDuration(stats.totalDuration)}`,
+      label: `  Today: ${formatNumber(stats.totalTokensToday)}`,
+      enabled: false
+    },
+    {
+      label: `  Total: ${formatNumber(stats.totalTokensAllTime)}`,
+      enabled: false
+    },
+    {
+      label: `  Current Session: ${formatNumber(stats.currentSessionTokens)}`,
+      enabled: false
+    },
+    { type: 'separator' },
+    {
+      label: '💰 Costs',
+      enabled: false
+    },
+    {
+      label: `  Today: $${stats.totalCostToday.toFixed(2)}`,
+      enabled: false
+    },
+    {
+      label: `  Total: $${stats.totalCostAllTime.toFixed(2)}`,
+      enabled: false
+    },
+    {
+      label: `  Current Session: $${stats.currentSessionCost.toFixed(2)}`,
+      enabled: false
+    },
+    { type: 'separator' },
+    {
+      label: '🔥 Burn Rate',
+      enabled: false
+    },
+    {
+      label: `  ${Math.round(stats.currentBurnRate.tokens_per_minute)} tokens/min`,
+      enabled: false
+    },
+    {
+      label: `  $${stats.currentBurnRate.cost_per_hour.toFixed(2)}/hour`,
+      enabled: false
+    },
+    { type: 'separator' },
+    {
+      label: '📅 Sessions (5h blocks)',
+      enabled: false
+    },
+    {
+      label: `  Today: ${stats.sessionsToday}`,
+      enabled: false
+    },
+    {
+      label: `  Total: ${stats.totalSessions}`,
       enabled: false
     },
     { type: 'separator' },
@@ -114,23 +201,20 @@ function updateTrayMenu() {
     },
     { type: 'separator' },
     {
+      label: 'Model Breakdown',
+      submenu: createModelBreakdownMenu(stats.modelBreakdown)
+    },
+    { type: 'separator' },
+    {
       label: 'Test Notification',
       click: () => {
         notificationService.notifyTaskComplete('Test task completed!');
       }
     },
-    { type: 'separator' },
     {
-      label: 'Preferences...',
-      click: () => {
-        // TODO: Open preferences window
-        console.log('Open preferences');
-      }
-    },
-    {
-      label: 'Reset Statistics',
-      click: () => {
-        analyticsService.resetStats();
+      label: 'Refresh Stats',
+      click: async () => {
+        await analyticsService.refreshStats();
         updateTrayMenu();
       }
     },
@@ -138,13 +222,43 @@ function updateTrayMenu() {
     {
       label: 'Quit',
       click: () => {
-        analyticsService.endSession();
         app.quit();
       }
     }
   ]);
 
   tray.setContextMenu(contextMenu);
+}
+
+function createModelBreakdownMenu(modelBreakdown: any): any[] {
+  const models = Object.keys(modelBreakdown);
+
+  if (models.length === 0) {
+    return [{
+      label: 'No data yet',
+      enabled: false
+    }];
+  }
+
+  return models.map(model => {
+    const tokens = modelBreakdown[model];
+    const total = tokens.input_tokens + tokens.output_tokens +
+                  (tokens.cache_creation_tokens || 0) + (tokens.cache_read_tokens || 0);
+
+    return {
+      label: `${model}: ${formatNumber(total)} tokens`,
+      enabled: false
+    };
+  });
+}
+
+function formatNumber(num: number): string {
+  if (num >= 1_000_000) {
+    return `${(num / 1_000_000).toFixed(2)}M`;
+  } else if (num >= 1_000) {
+    return `${(num / 1_000).toFixed(1)}K`;
+  }
+  return num.toString();
 }
 
 function formatDuration(ms: number): string {
