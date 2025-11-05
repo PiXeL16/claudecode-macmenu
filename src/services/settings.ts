@@ -8,6 +8,7 @@ export interface Settings {
   soundFile: string;
   theme: 'light' | 'dark' | 'auto';
   autoStart: boolean;
+  skipHooksPrompt?: boolean;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -15,7 +16,8 @@ const DEFAULT_SETTINGS: Settings = {
   soundEnabled: true,
   soundFile: 'default',
   theme: 'auto',
-  autoStart: false
+  autoStart: false,
+  skipHooksPrompt: false
 };
 
 export class SettingsManager {

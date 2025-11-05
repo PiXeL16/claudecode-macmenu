@@ -1,15 +1,17 @@
-import { app, Tray, Menu, nativeImage, Notification, NativeImage } from 'electron';
+import { app, Tray, Menu, nativeImage, Notification, NativeImage, dialog } from 'electron';
 import * as path from 'path';
 import { AnalyticsService } from './services/analytics';
 import { NotificationService } from './services/notification';
 import { SettingsManager } from './services/settings';
 import { HookServer } from './services/hookServer';
+import { InstallerService } from './services/installer';
 
 let tray: Tray | null = null;
 let analyticsService: AnalyticsService;
 let notificationService: NotificationService;
 let settingsManager: SettingsManager;
 let hookServer: HookServer;
+let installerService: InstallerService;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -33,6 +35,7 @@ async function initializeServices() {
   analyticsService = new AnalyticsService();
   notificationService = new NotificationService(settingsManager);
   hookServer = new HookServer(notificationService);
+  installerService = new InstallerService();
 
   // Start the hook server to receive notifications from Claude Code
   try {
@@ -46,6 +49,43 @@ async function initializeServices() {
   analyticsService.setupAutoRefresh(() => {
     updateTrayMenu();
   });
+
+  // Check if hooks are installed and prompt user if not
+  checkHooksOnStartup();
+}
+
+async function checkHooksOnStartup() {
+  const settings = settingsManager.getSettings();
+  if (settings.skipHooksPrompt) {
+    return;
+  }
+
+  const hooksInstalled = await installerService.checkHooksInstalled();
+  if (!hooksInstalled) {
+    setTimeout(() => {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Claude Code Hooks Setup',
+        message: 'Welcome to Claude Code Menu!',
+        detail: 'To enable real-time notifications, you need to install Claude Code hooks.\n\nWould you like to install them now?',
+        buttons: ['Install Hooks', 'Remind Me Later', 'Don\'t Ask Again'],
+        defaultId: 0
+      }).then(async result => {
+        if (result.response === 0) {
+          // Install hooks
+          const installResult = await installerService.installHooks(hookServer.getPort());
+          dialog.showMessageBox({
+            type: installResult.success ? 'info' : 'error',
+            title: installResult.success ? 'Success' : 'Error',
+            message: installResult.message
+          });
+        } else if (result.response === 2) {
+          // Don't ask again
+          settingsManager.updateSettings({ skipHooksPrompt: true });
+        }
+      });
+    }, 2000); // Wait 2 seconds after app starts
+  }
 }
 
 // Cleanup on app quit
@@ -224,6 +264,52 @@ function updateTrayMenu() {
         await analyticsService.refreshStats();
         updateTrayMenu();
       }
+    },
+    { type: 'separator' },
+    {
+      label: 'Setup',
+      submenu: [
+        {
+          label: 'Install Hooks...',
+          click: async () => {
+            const result = await installerService.installHooks(hookServer.getPort());
+            dialog.showMessageBox({
+              type: result.success ? 'info' : 'error',
+              title: result.success ? 'Success' : 'Error',
+              message: result.message
+            });
+            updateTrayMenu();
+          }
+        },
+        {
+          label: 'Open Hooks Config',
+          click: () => {
+            installerService.openHooksConfig();
+          }
+        },
+        {
+          label: 'Restore Hooks Backup',
+          click: async () => {
+            const result = await installerService.restoreHooksBackup();
+            dialog.showMessageBox({
+              type: result.success ? 'info' : 'error',
+              title: result.success ? 'Success' : 'Error',
+              message: result.message
+            });
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Start at Login',
+          type: 'checkbox',
+          checked: installerService.getLoginItemSettings(),
+          click: () => {
+            const current = installerService.getLoginItemSettings();
+            installerService.setLoginItemSettings(!current);
+            updateTrayMenu();
+          }
+        }
+      ]
     },
     { type: 'separator' },
     {
