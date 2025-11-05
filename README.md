@@ -10,7 +10,11 @@ A macOS menu bar application that enhances Claude Code with comprehensive usage 
   - Burn rate (tokens/min, $/hour)
   - Session tracking (5-hour blocks)
   - Model usage breakdown
-- 🔔 **Smart Notifications**: Get notified when Claude Code completes new messages
+- 🔔 **Hook-Based Notifications**: Real-time notifications using Claude Code hooks
+  - Notifies when Claude finishes responding (Stop event)
+  - Notifies when task agents complete (SubagentStop event)
+  - Notifies when specific tools complete (Bash, Task, etc.)
+  - Event-driven, no polling required
 - 💰 **Cost Monitoring**: Track daily and total spending
 - 📈 **Live Stats**: Auto-updates every 30 seconds
 - 🎛️ **Settings**: Customize notification sounds and preferences
@@ -61,31 +65,77 @@ npm run package
 - macOS 10.13 or later
 - Node.js 18 or later
 
+## Quick Start
+
+### For End Users
+
+1. **Download** the latest release `.dmg` file
+2. **Install** the app by dragging it to Applications
+3. **Launch** the app - look for the icon in your menu bar
+4. **Setup hooks** - The app will prompt you to install Claude Code hooks automatically
+   - Click "Install Hooks" when prompted
+   - Or go to Setup → Install Hooks from the menu
+
+That's it! You'll now get real-time notifications when Claude Code completes tasks.
+
+📖 **Detailed installation guide:** [INSTALL.md](./INSTALL.md)
+
+### For Developers
+
+```bash
+# Clone and install
+git clone https://github.com/PiXeL16/claudecode-macmenu.git
+cd claudecode-macmenu
+npm install
+
+# Build and run
+npm run build
+npm run dev
+
+# The app will prompt you to install hooks automatically
+```
+
 ## Usage
 
-The app runs in your menu bar and monitors Claude Code activity by reading usage data from:
-- `~/.claude/projects/**/*.jsonl`
+### Menu Features
 
-Click the menu bar icon to:
-- View detailed usage statistics (tokens, costs, sessions)
-- See burn rate and current session metrics
-- Explore per-model token usage breakdown
-- Toggle notifications and sounds
-- Refresh statistics manually
+Click the menu bar icon to access:
+
+**Statistics:**
+- 💬 Messages (today and total)
+- 🎯 Tokens (input, output, cache)
+- 💰 Costs (daily and total)
+- 🔥 Burn Rate (tokens/min, $/hour)
+- 📅 Sessions (5-hour blocks)
+- 📊 Model Breakdown
+
+**Notifications:**
+- Toggle notifications on/off
+- Toggle sound alerts
+- View hook server status
 - Test notifications
 
-## Data Sources
+**Setup:**
+- Install/update hooks
+- Open hooks configuration
+- Restore hooks backup
+- Configure auto-start at login
 
-The app reads Claude Code usage data from JSONL files:
-- **Location**: `~/.claude/projects/**/*.jsonl`
-- **Format**: JSON Lines (one JSON object per line)
-- **Data**: Timestamp, tokens, costs, model info
-- **Monitoring**: Watches for file changes in real-time
+## How It Works
 
-Analytics approach based on [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor) by Maciek-roboblog.
+**Notifications (Hook-Based):**
+- The app runs an HTTP server on `localhost:3456`
+- Claude Code hooks send events to the server when tasks complete
+- You get instant notifications without any polling or file watching
+- See [HOOKS.md](./HOOKS.md) for customization
 
-## Configuration
+**Analytics (File-Based):**
+- Reads Claude Code usage data from `~/.claude/projects/**/*.jsonl`
+- Tracks tokens, costs, sessions, and model usage
+- Auto-updates every 30 seconds
+- Based on [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor)
 
-Settings and data are stored in:
-- `~/Library/Application Support/claudecode-macmenu/settings.json` - User preferences
-- Source data: `~/.claude/projects/**/*.jsonl` - Claude Code usage logs (read-only)
+**Data Storage:**
+- Settings: `~/Library/Application Support/claudecode-macmenu/settings.json`
+- Hooks config: `~/.config/claude-code/hooks.json`
+- Usage data: `~/.claude/projects/**/*.jsonl` (read-only)

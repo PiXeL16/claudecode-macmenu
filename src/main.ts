@@ -1,14 +1,17 @@
-import { app, Tray, Menu, nativeImage, Notification } from 'electron';
+import { app, Tray, Menu, nativeImage, Notification, NativeImage, dialog } from 'electron';
 import * as path from 'path';
 import { AnalyticsService } from './services/analytics';
 import { NotificationService } from './services/notification';
 import { SettingsManager } from './services/settings';
+import { HookServer } from './services/hookServer';
+import { InstallerService } from './services/installer';
 
 let tray: Tray | null = null;
 let analyticsService: AnalyticsService;
 let notificationService: NotificationService;
 let settingsManager: SettingsManager;
-let lastMessageCount = 0;
+let hookServer: HookServer;
+let installerService: InstallerService;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -18,8 +21,8 @@ if (!gotTheLock) {
 
 app.dock?.hide(); // Hide from dock on macOS
 
-app.whenReady().then(() => {
-  initializeServices();
+app.whenReady().then(async () => {
+  await initializeServices();
   createTray();
 });
 
@@ -27,34 +30,70 @@ app.on('window-all-closed', (e: Event) => {
   e.preventDefault();
 });
 
-function initializeServices() {
+async function initializeServices() {
   settingsManager = new SettingsManager();
   analyticsService = new AnalyticsService();
   notificationService = new NotificationService(settingsManager);
+  hookServer = new HookServer(notificationService);
+  installerService = new InstallerService();
 
-  // Setup auto-refresh and file watching
-  analyticsService.setupAutoRefresh(() => {
-    updateTrayMenu();
-    checkForNewMessages();
-  });
-}
-
-function checkForNewMessages() {
-  const stats = analyticsService.getStatsSync();
-
-  // Check if there are new messages (potential task completion)
-  if (stats.messagesCount > lastMessageCount && lastMessageCount > 0) {
-    const newMessages = stats.messagesCount - lastMessageCount;
-    console.log(`Detected ${newMessages} new message(s)`);
-
-    // Notify user of task completion
-    notificationService.notifyTaskComplete(
-      `Claude Code completed ${newMessages} message${newMessages > 1 ? 's' : ''}`
-    );
+  // Start the hook server to receive notifications from Claude Code
+  try {
+    await hookServer.start();
+    console.log(`Hook server started on port ${hookServer.getPort()}`);
+  } catch (error) {
+    console.error('Failed to start hook server:', error);
   }
 
-  lastMessageCount = stats.messagesCount;
+  // Setup auto-refresh for analytics (no more message count checking)
+  analyticsService.setupAutoRefresh(() => {
+    updateTrayMenu();
+  });
+
+  // Check if hooks are installed and prompt user if not
+  checkHooksOnStartup();
 }
+
+async function checkHooksOnStartup() {
+  const settings = settingsManager.getSettings();
+  if (settings.skipHooksPrompt) {
+    return;
+  }
+
+  const hooksInstalled = await installerService.checkHooksInstalled();
+  if (!hooksInstalled) {
+    setTimeout(() => {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Claude Code Hooks Setup',
+        message: 'Welcome to Claude Code Menu!',
+        detail: 'To enable real-time notifications, you need to install Claude Code hooks.\n\nWould you like to install them now?',
+        buttons: ['Install Hooks', 'Remind Me Later', 'Don\'t Ask Again'],
+        defaultId: 0
+      }).then(async result => {
+        if (result.response === 0) {
+          // Install hooks
+          const installResult = await installerService.installHooks(hookServer.getPort());
+          dialog.showMessageBox({
+            type: installResult.success ? 'info' : 'error',
+            title: installResult.success ? 'Success' : 'Error',
+            message: installResult.message
+          });
+        } else if (result.response === 2) {
+          // Don't ask again
+          settingsManager.updateSettings({ skipHooksPrompt: true });
+        }
+      });
+    }, 2000); // Wait 2 seconds after app starts
+  }
+}
+
+// Cleanup on app quit
+app.on('will-quit', () => {
+  if (hookServer) {
+    hookServer.stop();
+  }
+});
 
 function createTray() {
   // Create a simple icon (we'll use a template icon for proper macOS theming)
@@ -71,7 +110,7 @@ function createTray() {
   }, 30000); // Update every 30 seconds
 }
 
-function createTrayIcon(): nativeImage {
+function createTrayIcon(): NativeImage {
   // Create a simple 16x16 template icon
   // Template icons automatically adapt to light/dark mode
   const iconPath = path.join(__dirname, '../assets/icon-template.png');
@@ -178,7 +217,15 @@ function updateTrayMenu() {
     },
     { type: 'separator' },
     {
-      label: '🔔 Notifications',
+      label: '🔔 Notifications (Hook-based)',
+      enabled: false
+    },
+    {
+      label: `  Server: localhost:${hookServer.getPort()}`,
+      enabled: false
+    },
+    {
+      label: '  Enabled',
       type: 'checkbox',
       checked: settings.notificationsEnabled,
       click: () => {
@@ -189,7 +236,7 @@ function updateTrayMenu() {
       }
     },
     {
-      label: '🔊 Sound',
+      label: '  Sound',
       type: 'checkbox',
       checked: settings.soundEnabled,
       click: () => {
@@ -217,6 +264,52 @@ function updateTrayMenu() {
         await analyticsService.refreshStats();
         updateTrayMenu();
       }
+    },
+    { type: 'separator' },
+    {
+      label: 'Setup',
+      submenu: [
+        {
+          label: 'Install Hooks...',
+          click: async () => {
+            const result = await installerService.installHooks(hookServer.getPort());
+            dialog.showMessageBox({
+              type: result.success ? 'info' : 'error',
+              title: result.success ? 'Success' : 'Error',
+              message: result.message
+            });
+            updateTrayMenu();
+          }
+        },
+        {
+          label: 'Open Hooks Config',
+          click: () => {
+            installerService.openHooksConfig();
+          }
+        },
+        {
+          label: 'Restore Hooks Backup',
+          click: async () => {
+            const result = await installerService.restoreHooksBackup();
+            dialog.showMessageBox({
+              type: result.success ? 'info' : 'error',
+              title: result.success ? 'Success' : 'Error',
+              message: result.message
+            });
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Start at Login',
+          type: 'checkbox',
+          checked: installerService.getLoginItemSettings(),
+          click: () => {
+            const current = installerService.getLoginItemSettings();
+            installerService.setLoginItemSettings(!current);
+            updateTrayMenu();
+          }
+        }
+      ]
     },
     { type: 'separator' },
     {

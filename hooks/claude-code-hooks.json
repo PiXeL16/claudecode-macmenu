@@ -1,0 +1,46 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:3456/hook -H 'Content-Type: application/json' -d '{\"event\":\"Stop\",\"timestamp\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\"}' > /dev/null 2>&1 &"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:3456/hook -H 'Content-Type: application/json' -d '{\"event\":\"SubagentStop\",\"timestamp\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\"}' > /dev/null 2>&1 &"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:3456/hook -H 'Content-Type: application/json' -d '{\"event\":\"PostToolUse\",\"tool\":\"Bash\",\"timestamp\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\"}' > /dev/null 2>&1 &"
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:3456/hook -H 'Content-Type: application/json' -d '{\"event\":\"PostToolUse\",\"tool\":\"Task\",\"timestamp\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\"}' > /dev/null 2>&1 &"
+          }
+        ]
+      }
+    ]
+  }
+}
