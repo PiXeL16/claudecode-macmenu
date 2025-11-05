@@ -10,7 +10,11 @@ A macOS menu bar application that enhances Claude Code with comprehensive usage 
   - Burn rate (tokens/min, $/hour)
   - Session tracking (5-hour blocks)
   - Model usage breakdown
-- 🔔 **Smart Notifications**: Get notified when Claude Code completes new messages
+- 🔔 **Hook-Based Notifications**: Real-time notifications using Claude Code hooks
+  - Notifies when Claude finishes responding (Stop event)
+  - Notifies when task agents complete (SubagentStop event)
+  - Notifies when specific tools complete (Bash, Task, etc.)
+  - Event-driven, no polling required
 - 💰 **Cost Monitoring**: Track daily and total spending
 - 📈 **Live Stats**: Auto-updates every 30 seconds
 - 🎛️ **Settings**: Customize notification sounds and preferences
@@ -61,15 +65,37 @@ npm run package
 - macOS 10.13 or later
 - Node.js 18 or later
 
-## Usage
+## Setup
 
-The app runs in your menu bar and monitors Claude Code activity by reading usage data from:
-- `~/.claude/projects/**/*.jsonl`
+### 1. Install Hook Configuration
+
+To enable real-time notifications, you need to configure Claude Code hooks:
+
+```bash
+# Run the installation script
+./hooks/install-hooks.sh
+```
+
+This will install hook configurations that send events to the menu bar app when:
+- Claude finishes responding
+- Task agents complete
+- Bash or Task tools complete
+
+For more details, see [HOOKS.md](./HOOKS.md)
+
+### 2. Start the App
+
+The app runs in your menu bar and:
+- Listens for hook events on `http://localhost:3456`
+- Reads usage analytics from `~/.claude/projects/**/*.jsonl`
+
+## Usage
 
 Click the menu bar icon to:
 - View detailed usage statistics (tokens, costs, sessions)
 - See burn rate and current session metrics
 - Explore per-model token usage breakdown
+- Check hook server status
 - Toggle notifications and sounds
 - Refresh statistics manually
 - Test notifications
