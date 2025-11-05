@@ -1,3 +1,5 @@
+// ABOUTME: HTTP server that receives hook events from Claude Code and triggers notifications
+// ABOUTME: Listens on localhost for POST requests containing event data from Claude Code hooks
 import * as http from 'http';
 import { NotificationService } from './notification';
 

@@ -1,3 +1,5 @@
+// ABOUTME: Settings manager for persisting user preferences and application configuration
+// ABOUTME: Handles loading, saving, and updating settings stored in JSON format
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';

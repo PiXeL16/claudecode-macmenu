@@ -1,3 +1,5 @@
+// ABOUTME: Service for displaying macOS native notifications when Claude Code tasks complete
+// ABOUTME: Manages notification display, sound playback, and respects user settings
 import { Notification } from 'electron';
 import * as path from 'path';
 import { SettingsManager } from './settings';

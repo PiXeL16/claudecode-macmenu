@@ -1,4 +1,5 @@
-// Data structures based on Claude Code's usage data format
+// ABOUTME: Type definitions and utilities for Claude Code usage data tracking
+// ABOUTME: Includes token counting, cost calculation, and model pricing information
 
 export interface TokenCounts {
   input_tokens: number;
@@ -92,6 +93,18 @@ export const MODEL_PRICING: { [key: string]: ModelPricing } = {
     cache_creation: 3.75,
     cache_read: 0.30
   },
+  'claude-sonnet-4': {
+    input: 3.0,
+    output: 15.0,
+    cache_creation: 3.75,
+    cache_read: 0.30
+  },
+  'claude-sonnet-4-5': {
+    input: 3.0,
+    output: 15.0,
+    cache_creation: 3.75,
+    cache_read: 0.30
+  },
   'claude-3-haiku': {
     input: 0.25,
     output: 1.25,
@@ -106,6 +119,16 @@ export function normalizeModelName(model: string): string {
   // Map various model names to standard keys
   if (normalized.includes('opus')) return 'claude-3-opus';
   if (normalized.includes('sonnet')) {
+    // Check for Sonnet 4.5 variants
+    if (normalized.includes('4.5') || normalized.includes('4-5')) {
+      return 'claude-sonnet-4-5';
+    }
+    // Check for Sonnet 4 variants
+    if (normalized.includes('sonnet-4') || normalized.includes('sonnet_4') ||
+        (normalized.includes('4') && !normalized.includes('3'))) {
+      return 'claude-sonnet-4';
+    }
+    // Check for Sonnet 3.5 variants
     if (normalized.includes('3.5') || normalized.includes('3-5')) {
       return 'claude-3-5-sonnet';
     }

@@ -1,3 +1,5 @@
+// ABOUTME: Analytics service for tracking Claude Code usage statistics and metrics
+// ABOUTME: Calculates tokens, costs, burn rates, and session data from usage log files
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';

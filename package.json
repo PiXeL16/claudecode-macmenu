@@ -8,7 +8,10 @@
     "dev": "tsc && electron .",
     "build": "tsc",
     "watch": "tsc --watch",
-    "package": "electron-builder"
+    "package": "electron-builder",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "electron",
@@ -19,12 +22,14 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.10.0",
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
     "typescript": "^5.3.3"
   },
-  "dependencies": {},
   "build": {
     "appId": "com.claudecode.macmenu",
     "productName": "Claude Code Menu",

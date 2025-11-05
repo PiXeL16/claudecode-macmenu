@@ -1,3 +1,5 @@
+// ABOUTME: Service for installing and managing Claude Code hooks configuration
+// ABOUTME: Handles hooks installation, backup, restoration, and login item settings
 import * as fs from 'fs';
 import * as path from 'path';
 import { app, dialog, shell } from 'electron';

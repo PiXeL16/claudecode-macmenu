@@ -1,3 +1,5 @@
+// ABOUTME: Reader service for parsing Claude Code usage data from JSONL log files
+// ABOUTME: Discovers, reads, and watches for changes in Claude Code project usage logs
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';

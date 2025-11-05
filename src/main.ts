@@ -1,3 +1,5 @@
+// ABOUTME: Main Electron application entry point for the Claude Code Mac menu bar app
+// ABOUTME: Manages tray icon, menu, services initialization, and coordinates all application features
 import { app, Tray, Menu, nativeImage, Notification, NativeImage, dialog } from 'electron';
 import * as path from 'path';
 import { AnalyticsService } from './services/analytics';
