@@ -10,8 +10,20 @@ Place your menu bar icons here:
 
 ## Sounds
 
-Custom sound files can be placed here if needed (optional).
-By default, the app uses macOS system sounds.
+The app ships with custom-generated notification sounds in `sounds/`:
+
+- **completion.wav** - Gentle ascending two-tone chime (default)
+- **subtle.wav** - Short, minimal notification
+- **classic.wav** - Pleasant bell tone with harmonics
+- **alert.wav** - Attention-grabbing triple tone
+- **success.wav** - Bright, uplifting three-note progression
+
+These sounds are programmatically generated using `scripts/generate-sounds.js`.
+To regenerate: `node scripts/generate-sounds.js`
+
+The app also supports:
+- macOS system sounds (Glass, Hero, Ping, etc.)
+- Custom user sounds in `~/Library/Application Support/claudecode-macmenu/sounds/`
 
 ## Creating Icons
 

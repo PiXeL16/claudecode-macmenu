@@ -31,7 +31,38 @@ export class NotificationService {
   }
 
   private getSoundPath(soundFile: string): string {
-    // macOS system sounds
+    const { app } = require('electron');
+    const fs = require('fs');
+
+    // Check for bundled sounds first
+    const bundledSounds: { [key: string]: string } = {
+      'completion': 'completion.wav',
+      'subtle': 'subtle.wav',
+      'classic': 'classic.wav',
+      'alert': 'alert.wav',
+      'success': 'success.wav'
+    };
+
+    if (bundledSounds[soundFile]) {
+      const bundledPath = path.join(
+        app.getAppPath(),
+        'assets',
+        'sounds',
+        bundledSounds[soundFile]
+      );
+      if (fs.existsSync(bundledPath)) {
+        return bundledPath;
+      }
+    }
+
+    // Check for custom sounds in user directory
+    const userSoundsDir = path.join(app.getPath('userData'), 'sounds');
+    const customSoundPath = path.join(userSoundsDir, `${soundFile}.wav`);
+    if (fs.existsSync(customSoundPath)) {
+      return customSoundPath;
+    }
+
+    // Fall back to macOS system sounds
     const systemSounds: { [key: string]: string } = {
       'default': 'Glass',
       'glass': 'Glass',
@@ -46,13 +77,14 @@ export class NotificationService {
       'submarine': 'Submarine'
     };
 
-    return systemSounds[soundFile] || systemSounds['default'];
+    const systemSoundName = systemSounds[soundFile] || systemSounds['default'];
+    return `/System/Library/Sounds/${systemSoundName}.aiff`;
   }
 
   private playSound(soundFile: string): void {
-    // On macOS, we can use the afplay command to play sounds
+    // Play sound using afplay command
     const { exec } = require('child_process');
-    const soundPath = `/System/Library/Sounds/${this.getSoundPath(soundFile)}.aiff`;
+    const soundPath = this.getSoundPath(soundFile);
 
     exec(`afplay "${soundPath}"`, (error: Error | null) => {
       if (error) {

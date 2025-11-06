@@ -16,7 +16,7 @@ export interface Settings {
 const DEFAULT_SETTINGS: Settings = {
   notificationsEnabled: true,
   soundEnabled: true,
-  soundFile: 'default',
+  soundFile: 'completion',
   theme: 'auto',
   autoStart: false,
   skipHooksPrompt: false
