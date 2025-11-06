@@ -1,6 +1,8 @@
-# Claude Code Mac Menu
-
 <div align="center">
+
+<img src="assets/clauwd.png" alt="Claude Code Menu Icon" width="200"/>
+
+# Claude Code Mac Menu
 
 **A macOS menu bar application that enhances Claude Code with comprehensive usage analytics and real-time notifications**
 
