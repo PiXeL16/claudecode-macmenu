@@ -32,8 +32,6 @@ jobs:
 
       - name: Package application
         run: npm run package
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract version from tag
         id: get_version
