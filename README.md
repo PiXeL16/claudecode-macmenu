@@ -92,7 +92,7 @@
 ### Option 2: Via Homebrew (Coming Soon)
 
 ```bash
-brew install --cask claudecode-macmenu
+brew install --cask claude-code-macmenu
 ```
 
 *Note: Homebrew cask formula is pending approval*
@@ -153,16 +153,16 @@ make release VERSION=1.0.0
 
 To submit to Homebrew Cask:
 1. Fork [Homebrew/homebrew-cask](https://github.com/Homebrew/homebrew-cask)
-2. Create a new branch: `git checkout -b claude-code-menu`
-3. Add the cask file from `homebrew/claudecode-macmenu.rb` to `Casks/c/claude-code-menu.rb`
+2. Create a new branch: `git checkout -b claude-code-macmenu`
+3. Add the cask file from `homebrew/claudecode-macmenu.rb` to `Casks/c/claude-code-macmenu.rb`
 4. Test the cask:
    ```bash
-   brew audit --new --cask claude-code-menu
-   brew style --fix claude-code-menu
-   brew install --cask claude-code-menu
-   brew uninstall --cask claude-code-menu
+   brew audit --new --cask claude-code-macmenu
+   brew style --fix claude-code-macmenu
+   brew install --cask claude-code-macmenu
+   brew uninstall --cask claude-code-macmenu
    ```
-5. Commit with message: `claude-code-menu 0.2.0 (new cask)`
+5. Commit with message: `claude-code-macmenu 0.2.0 (new cask)`
 6. Push and open a PR to `Homebrew/homebrew-cask`
 
 See [Homebrew docs](https://docs.brew.sh/Adding-Software-to-Homebrew) for details.
