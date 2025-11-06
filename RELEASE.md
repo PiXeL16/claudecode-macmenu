@@ -139,9 +139,16 @@ Examples:
 ## Post-Release
 
 1. Update release notes on GitHub if needed
-2. Announce on social media / Discord / etc.
-3. Monitor issues for bugs
-4. Plan next release
+2. Submit to Homebrew Cask (first-time only):
+   - Fork [Homebrew/homebrew-cask](https://github.com/Homebrew/homebrew-cask)
+   - Create branch: `git checkout -b claude-code-menu`
+   - Copy `homebrew/claudecode-macmenu.rb` to `Casks/c/claude-code-menu.rb`
+   - Test: `brew audit --new --cask claude-code-menu && brew install --cask claude-code-menu`
+   - Commit: `claude-code-menu 0.2.0 (new cask)`
+   - Open PR to Homebrew/homebrew-cask
+3. Announce on social media / Discord / etc.
+4. Monitor issues for bugs
+5. Plan next release
 
 ## Emergency Rollback
 

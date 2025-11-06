@@ -149,12 +149,23 @@ make release VERSION=1.0.0
 - Uploads DMG and ZIP to GitHub Releases
 - Generates release notes automatically
 
-**Homebrew:**
-After GitHub release is published:
-```bash
-# Update Homebrew cask (requires homebrew-cask tap)
-brew bump-cask-pr claudecode-macmenu --version=0.2.0
-```
+**Homebrew Submission:**
+
+To submit to Homebrew Cask:
+1. Fork [Homebrew/homebrew-cask](https://github.com/Homebrew/homebrew-cask)
+2. Create a new branch: `git checkout -b claude-code-menu`
+3. Add the cask file from `homebrew/claudecode-macmenu.rb` to `Casks/c/claude-code-menu.rb`
+4. Test the cask:
+   ```bash
+   brew audit --new --cask claude-code-menu
+   brew style --fix claude-code-menu
+   brew install --cask claude-code-menu
+   brew uninstall --cask claude-code-menu
+   ```
+5. Commit with message: `claude-code-menu 0.2.0 (new cask)`
+6. Push and open a PR to `Homebrew/homebrew-cask`
+
+See [Homebrew docs](https://docs.brew.sh/Adding-Software-to-Homebrew) for details.
 
 ## Requirements
 
