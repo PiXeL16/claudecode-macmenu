@@ -44,6 +44,7 @@
     "productName": "Claude Code Menu",
     "mac": {
       "category": "public.app-category.developer-tools",
+      "icon": "assets/icon.icns",
       "target": [
         "dmg",
         "zip"

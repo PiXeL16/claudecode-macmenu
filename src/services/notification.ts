@@ -1,6 +1,6 @@
 // ABOUTME: Service for displaying macOS native notifications when Claude Code tasks complete
 // ABOUTME: Manages notification display, sound playback, and respects user settings
-import { Notification } from 'electron';
+import { Notification, nativeImage } from 'electron';
 import * as path from 'path';
 import { SettingsManager, Settings } from './settings';
 import { UsageEntry, calculateCost, getTotalTokens } from '../types/usage';
@@ -73,10 +73,15 @@ export class NotificationService {
 
     console.log('Showing notification:', notificationTitle, notificationBody);
 
+    // Load the Clauwd notification icon
+    const iconPath = path.join(__dirname, '../assets/notification-icon.png');
+    const icon = nativeImage.createFromPath(iconPath);
+
     // Show system notification with time-sensitive priority to bypass Focus mode
     const notification = new Notification({
       title: notificationTitle,
       body: notificationBody,
+      icon: !icon.isEmpty() ? icon : undefined,
       silent: !settings.soundEnabled,
       sound: settings.soundEnabled ? this.getSoundPath(settings.soundFile) : undefined,
       urgency: 'critical', // High priority for banner display

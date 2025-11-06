@@ -44,20 +44,77 @@ A macOS menu bar application that enhances Claude Code with comprehensive usage 
 - Daily and total session counts
 - Active session monitoring
 
+## Installation
+
+### Via Homebrew (Recommended)
+
+```bash
+brew install --cask claudecode-macmenu
+```
+
+### Manual Download
+
+1. Download the latest `.dmg` from [Releases](https://github.com/PiXeL16/claudecode-macmenu/releases)
+2. Open the DMG and drag the app to Applications
+3. Launch from Applications or Spotlight
+
 ## Development
 
 ```bash
 # Install dependencies
-npm install
+make install
 
 # Run in development mode
-npm run dev
+make dev
 
 # Build TypeScript
-npm run build
+make build
 
 # Package for distribution
-npm run package
+make package
+
+# Run tests
+make test
+```
+
+## Release Process
+
+### For Maintainers
+
+**Quick releases:**
+```bash
+# Patch release (0.1.0 → 0.1.1)
+make release-patch
+
+# Minor release (0.1.0 → 0.2.0)
+make release-minor
+```
+
+**Manual version:**
+```bash
+# Specify exact version
+make release VERSION=1.0.0
+```
+
+**What happens during release:**
+1. ✅ Updates version in `package.json`
+2. ✅ Builds the application
+3. ✅ Packages DMG and ZIP files
+4. ✅ Creates git commit and tag
+5. ✅ Pushes to GitHub
+6. ✅ GitHub Actions creates release with artifacts
+7. ✅ Update Homebrew cask manually or via PR
+
+**GitHub Actions:**
+- Automatically builds and creates releases when version tags are pushed
+- Uploads DMG and ZIP to GitHub Releases
+- Generates release notes automatically
+
+**Homebrew:**
+After GitHub release is published:
+```bash
+# Update Homebrew cask (requires homebrew-cask tap)
+brew bump-cask-pr claudecode-macmenu --version=0.2.0
 ```
 
 ## Requirements

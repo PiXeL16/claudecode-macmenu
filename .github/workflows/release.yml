@@ -1,0 +1,55 @@
+# ABOUTME: GitHub Actions workflow for automated release builds and publishing
+# ABOUTME: Triggers on version tags, builds DMG/ZIP, creates GitHub releases
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package application
+        run: npm run package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/*.dmg
+            dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew Cask
+        if: ${{ !contains(github.ref, 'beta') && !contains(github.ref, 'alpha') }}
+        run: |
+          echo "🍺 Homebrew cask update would run here"
+          echo "For now, update manually with: brew bump-cask-pr claudecode-macmenu --version=${{ steps.get_version.outputs.VERSION }}"

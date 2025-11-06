@@ -34,6 +34,13 @@ app.dock?.hide(); // Hide from dock on macOS
 app.setName('Claude Code Menu');
 
 app.whenReady().then(async () => {
+  // Set the app icon - macOS will use this for notifications
+  const appIconPath = path.join(__dirname, '../assets/icon.icns');
+  const appIcon = nativeImage.createFromPath(appIconPath);
+  if (!appIcon.isEmpty() && app.dock) {
+    app.dock.setIcon(appIcon);
+  }
+
   await initializeServices();
   createTray();
 });
@@ -147,22 +154,21 @@ function createTray() {
 }
 
 function createTrayIcon(): NativeImage {
-  // Create a simple 16x16 template icon
-  // Template icons automatically adapt to light/dark mode
-  const iconPath = path.join(__dirname, '../assets/icon-template.png');
+  // Load the colored Clauwd icon (16x16, with @2x for Retina)
+  const iconPath = path.join(__dirname, '../assets/menubar-icon.png');
 
-  // Try to load the icon, otherwise create an empty one
   try {
     const icon = nativeImage.createFromPath(iconPath);
     if (!icon.isEmpty()) {
+      // Don't set as template - we want to keep the color!
+      icon.setTemplateImage(false);
       return icon;
     }
   } catch (error) {
-    console.log('Icon file not found, using empty icon');
+    console.log('Icon file not found:', error);
   }
 
-  // For now, create a simple representation
-  // In production, you'd want a proper icon file
+  // Fallback to empty icon
   const icon = nativeImage.createEmpty();
   return icon;
 }
