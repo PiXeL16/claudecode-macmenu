@@ -78,9 +78,7 @@
 
 ### Option 1: Download from GitHub (Recommended)
 
-**Latest Release:** [v0.2.2](https://github.com/PiXeL16/claudecode-macmenu/releases/tag/v0.2.2)
-
-1. Download `Claude-Code-Menu-0.2.2-arm64.dmg` from [Releases](https://github.com/PiXeL16/claudecode-macmenu/releases/latest)
+1. Download the latest `Claude-Code-Menu-{version}-arm64.dmg` from [Releases](https://github.com/PiXeL16/claudecode-macmenu/releases/latest)
 2. Open the DMG file
 3. Drag "Claude Code Menu" to your Applications folder
 4. **Important: Remove quarantine attribute** (app is not code signed):
