@@ -49,7 +49,10 @@
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "extendInfo": {
+        "LSUIElement": true
+      }
     },
     "files": [
       "dist/**/*",
