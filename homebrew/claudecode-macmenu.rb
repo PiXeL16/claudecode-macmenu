@@ -1,6 +1,6 @@
 # ABOUTME: Homebrew cask formula for installing Claude Code Menu via brew
 # ABOUTME: Defines app metadata, download URL, installation steps, and uninstall cleanup
-cask "claude-code-macmenu" do
+cask "claudecode-macmenu" do
   version "0.2.0"
   sha256 "8c32f613b18f62abe8f9bae2d5f93c64803edeff34306d508d3cb9e023791a67"
 

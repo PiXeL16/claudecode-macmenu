@@ -141,10 +141,10 @@ Examples:
 1. Update release notes on GitHub if needed
 2. Submit to Homebrew Cask (first-time only):
    - Fork [Homebrew/homebrew-cask](https://github.com/Homebrew/homebrew-cask)
-   - Create branch: `git checkout -b claude-code-macmenu`
-   - Copy `homebrew/claudecode-macmenu.rb` to `Casks/c/claude-code-macmenu.rb`
-   - Test: `brew audit --new --cask claude-code-macmenu && brew install --cask claude-code-macmenu`
-   - Commit: `claude-code-macmenu 0.2.0 (new cask)`
+   - Create branch: `git checkout -b claudecode-macmenu`
+   - Copy `homebrew/claudecode-macmenu.rb` to `Casks/c/claudecode-macmenu.rb`
+   - Test: `brew audit --new --cask claudecode-macmenu && brew install --cask claudecode-macmenu`
+   - Commit: `claudecode-macmenu 0.2.0 (new cask)`
    - Open PR to Homebrew/homebrew-cask
 3. Announce on social media / Discord / etc.
 4. Monitor issues for bugs
