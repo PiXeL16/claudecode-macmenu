@@ -40,31 +40,53 @@ A macOS menu bar application that enhances Claude Code with comprehensive usage 
 - Daily and total session counts
 - Active session monitoring
 
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Build TypeScript
-npm run build
-
-# Package for distribution
-npm run package
-```
-
 ## Requirements
 
 - macOS 10.13 or later
 - Node.js 18 or later
 
+## Installation & Setup
+
+### 1. Install the App
+
+```bash
+# Install dependencies
+npm install
+
+# Build the app
+npm run build
+
+# Run the app
+npm start
+```
+
+### 2. Install Claude Code Hooks (Required for Notifications)
+
+To receive notifications when Claude Code finishes working:
+
+```bash
+cd hooks
+./install-hooks.sh
+```
+
+This sets up hooks in `~/.claude/settings.json` that notify the app when:
+- Claude Code finishes responding (Stop event)
+- Sessions start and end
+
+See [hooks/README.md](hooks/README.md) for detailed setup instructions.
+
 ## Usage
 
-The app runs in your menu bar and monitors Claude Code activity by reading usage data from:
-- `~/.claude/projects/**/*.jsonl`
+The app integrates with Claude Code in two ways:
+
+**1. Real-time Notifications (via Hooks)**
+- Install hooks using `hooks/install-hooks.sh`
+- Get notified instantly when Claude Code finishes working
+- Hooks trigger on Stop, SessionStart, and SessionEnd events
+
+**2. Analytics Dashboard (via JSONL files)**
+- Reads usage data from `~/.claude/projects/**/*.jsonl`
+- Shows detailed statistics in the menu bar
 
 Click the menu bar icon to:
 - View detailed usage statistics (tokens, costs, sessions)
@@ -74,18 +96,42 @@ Click the menu bar icon to:
 - Refresh statistics manually
 - Test notifications
 
-## Data Sources
+## How It Works
 
-The app reads Claude Code usage data from JSONL files:
-- **Location**: `~/.claude/projects/**/*.jsonl`
+### Notifications (Hook-Based)
+- **Setup**: Install hooks via `hooks/install-hooks.sh`
+- **Events**: Claude Code triggers hooks on Stop, SessionStart, SessionEnd
+- **IPC**: Hooks send messages to app via Unix socket (`/tmp/claudecode-macmenu.sock`)
+- **Result**: Instant notification when Claude finishes working
+
+### Analytics (JSONL-Based)
+- **Source**: `~/.claude/projects/**/*.jsonl` files
 - **Format**: JSON Lines (one JSON object per line)
 - **Data**: Timestamp, tokens, costs, model info
-- **Monitoring**: Watches for file changes in real-time
-
-Analytics approach based on [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor) by Maciek-roboblog.
+- **Update**: Auto-refreshes every 60 seconds
+- **Approach**: Based on [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor)
 
 ## Configuration
 
-Settings and data are stored in:
+**App Settings:**
 - `~/Library/Application Support/claudecode-macmenu/settings.json` - User preferences
-- Source data: `~/.claude/projects/**/*.jsonl` - Claude Code usage logs (read-only)
+
+**Claude Code Integration:**
+- `~/.claude/settings.json` - Hook configuration (installed via `hooks/install-hooks.sh`)
+- `~/.claude/projects/**/*.jsonl` - Usage data (read-only)
+
+**IPC:**
+- `/tmp/claudecode-macmenu.sock` - Unix socket for hook communication
+
+## Development
+
+```bash
+# Run in development mode
+npm run dev
+
+# Watch mode (auto-rebuild)
+npm run watch
+
+# Package for distribution
+npm run package
+```

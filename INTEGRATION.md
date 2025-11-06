@@ -1,14 +1,104 @@
 # Claude Code Integration Guide
 
-This document explains how the menu bar app integrates with Claude Code.
+This document explains how the menu bar app integrates with Claude Code using two complementary approaches:
 
-## Overview
+1. **Hook-based Notifications** - Real-time event notifications
+2. **JSONL Analytics** - Comprehensive usage data analysis
 
-The menu bar app monitors Claude Code usage by reading usage data from JSONL files that Claude Code automatically creates. This is the **implemented approach**.
+## Integration Architecture
 
-## Implementation: JSONL File Monitoring
+```
+Claude Code
+    ├─> Hooks (Stop, SessionStart, SessionEnd)
+    │     └─> hook script (claude-hook.js)
+    │           └─> Unix Socket (/tmp/claudecode-macmenu.sock)
+    │                 └─> Menu Bar App (Notifications)
+    │
+    └─> JSONL Files (~/.claude/projects/**/*.jsonl)
+          └─> UsageReader Service
+                └─> Analytics Service
+                      └─> Menu Bar App (Statistics)
+```
 
-The app reads usage data from `~/.claude/projects/**/*.jsonl` files.
+## 1. Hook-Based Notifications
+
+### Overview
+
+Claude Code's hook system allows us to execute scripts when events occur. We use this for **instant notifications** when Claude finishes working.
+
+### Hook Events Used
+
+- **Stop**: Triggered when Claude finishes responding (main use case for notifications)
+- **SessionStart**: When a Claude Code session starts
+- **SessionEnd**: When a Claude Code session ends
+
+### Implementation
+
+**Hook Script** (`hooks/claude-hook.js`)
+- Node.js script called by Claude Code hooks
+- Receives event data on stdin
+- Sends message to menu bar app via Unix socket
+- Fails silently if app isn't running
+
+**IPC Server** (`src/services/hookServer.ts`)
+- Creates Unix socket at `/tmp/claudecode-macmenu.sock`
+- Listens for hook messages
+- Triggers notifications when receiving Stop events
+- Refreshes analytics on session events
+
+**Installation**
+```bash
+cd hooks
+./install-hooks.sh
+```
+
+This adds hook configuration to `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/hooks/claude-hook.js"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Hook Message Format
+
+```json
+{
+  "event": "Stop",
+  "sessionId": "session_abc123",
+  "timestamp": "2025-11-06T10:30:45.123Z",
+  "data": {
+    "hook_event_name": "Stop",
+    "session_id": "session_abc123",
+    "transcript_path": "/path/to/transcript.jsonl",
+    "cwd": "/project/path"
+  }
+}
+```
+
+### Benefits
+
+- ✅ **Instant notifications** - No polling, immediate response
+- ✅ **Reliable** - Triggered directly by Claude Code
+- ✅ **Efficient** - No file watching overhead for notifications
+- ✅ **Event-aware** - Knows exactly when tasks complete
+
+## 2. JSONL Analytics
+
+### Overview
+
+Claude Code writes usage data to JSONL files. We read these for **comprehensive analytics**.
 
 ### Data Format
 
@@ -16,7 +106,7 @@ Each JSONL file contains one JSON object per line:
 
 ```json
 {
-  "timestamp": "2025-01-15T10:30:45.123Z",
+  "timestamp": "2025-11-06T10:30:45.123Z",
   "message_id": "msg_abc123",
   "request_id": "req_xyz789",
   "model": "claude-3-5-sonnet-20250219",
@@ -30,37 +120,23 @@ Each JSONL file contains one JSON object per line:
 
 ### Implementation
 
-**1. UsageReader Service** (`src/services/usageReader.ts`)
+**UsageReader Service** (`src/services/usageReader.ts`)
 - Recursively scans `~/.claude/projects/` for `.jsonl` files
 - Parses JSONL format (one JSON object per line)
 - Deduplicates entries based on message_id/request_id
 - Filters entries by date (last 8 days by default)
-- Watches for file changes in real-time
+- Optional: Watches for file changes
 
-**2. Analytics Service** (`src/services/analytics.ts`)
+**Analytics Service** (`src/services/analytics.ts`)
 - Processes usage entries to calculate statistics
 - Tracks tokens (input, output, cache creation, cache read)
 - Calculates costs using model-specific pricing
 - Computes burn rate (tokens/min, $/hour)
 - Groups into 5-hour session blocks
 - Maintains per-model breakdown
+- Refreshes every 60 seconds
 
-**3. Main App** (`src/main.ts`)
-- Sets up file watching on startup
-- Detects new messages for notifications
-- Refreshes menu every 30 seconds
-- Updates stats when files change
-
-### Notification Trigger
-
-The app detects new messages by comparing message counts:
-1. Tracks `messagesCount` from last refresh
-2. When stats refresh (every 60s or on file change), compares counts
-3. If count increased, triggers notification with the number of new messages
-
-This approach is simple and reliable - any new Claude Code activity results in new JSONL entries, which triggers notifications.
-
-## Model Pricing
+### Model Pricing
 
 The app includes pricing for Claude models (per million tokens):
 
@@ -76,50 +152,119 @@ The app includes pricing for Claude models (per million tokens):
 - Input: $0.25, Output: $1.25
 - Cache Creation: $0.30, Cache Read: $0.03
 
-Pricing is automatically applied based on the model name in the usage data.
+### Session Blocks
 
-## Session Blocks
-
-Sessions are grouped into 5-hour blocks, following the same approach as Claude-Code-Usage-Monitor:
+Sessions are grouped into 5-hour blocks:
 - Each 5-hour period = 1 session
 - Helps identify distinct work periods
 - Today's sessions = unique 5-hour blocks today
 - Total sessions = all unique blocks in the last 8 days
 
-## Credits
+### Benefits
 
-This integration approach is based on [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor) by Maciek-roboblog, which pioneered the JSONL file reading approach for tracking Claude Code usage.
+- ✅ **Comprehensive data** - Full history and detailed metrics
+- ✅ **Cost tracking** - Accurate pricing calculations
+- ✅ **No dependencies** - Works independently of hooks
+- ✅ **Historical analysis** - Last 8 days of data
+
+## Why Two Approaches?
+
+| Aspect | Hooks | JSONL Files |
+|--------|-------|-------------|
+| **Purpose** | Real-time notifications | Analytics & statistics |
+| **Speed** | Instant | Delayed (60s refresh) |
+| **Data** | Event metadata | Full usage details |
+| **Setup** | Requires installation | Automatic |
+| **Dependency** | Needs hooks installed | Always available |
+
+**Together they provide:**
+- ⚡ Instant notifications when Claude finishes
+- 📊 Comprehensive analytics and cost tracking
+- 🔄 Automatic fallback if hooks aren't installed
+- 📈 Both real-time awareness and historical insights
+
+## Setup Instructions
+
+### Basic Setup (Analytics Only)
+
+Just run the app - analytics work automatically:
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+### Full Setup (Notifications + Analytics)
+
+Install hooks for instant notifications:
+
+```bash
+# Install the app
+npm install
+npm run build
+
+# Install hooks
+cd hooks
+./install-hooks.sh
+
+# Run the app
+cd ..
+npm start
+```
 
 ## Testing
 
-To test the integration:
+### Test Hooks
 
-1. **Use Claude Code**: Send some messages in Claude Code
-2. **Check files**: Verify JSONL files exist at `~/.claude/projects/`
-3. **Launch app**: Run the menu bar app
-4. **View stats**: Click the menu icon to see your usage statistics
-5. **Test notifications**: Enable notifications and send a new message
+1. Install hooks: `cd hooks && ./install-hooks.sh`
+2. Start the menu bar app
+3. Check console: Should see "Hook server started successfully"
+4. Use Claude Code
+5. When Claude finishes: Should see notification + sound
+
+### Test Analytics
+
+1. Start the menu bar app
+2. Click menu bar icon
+3. Should see statistics if you've used Claude Code
+4. Use Claude Code
+5. Wait 60 seconds or click "Refresh Stats"
+6. Stats should update
 
 ## Troubleshooting
 
-**No data showing:**
-- Check if `~/.claude/projects/` exists
-- Verify JSONL files contain data
-- Try "Refresh Stats" from the menu
+**No notifications:**
+- Check if hooks are installed: `cat ~/.claude/settings.json`
+- Verify hook script exists: `ls hooks/claude-hook.js`
+- Check app logs: Should see "Hook server started"
+- Ensure Node.js is available for hook script
 
-**Notifications not working:**
-- Ensure notifications are enabled in the menu
-- Check macOS notification permissions
-- Use "Test Notification" to verify sound settings
+**No analytics:**
+- Check if JSONL files exist: `ls ~/.claude/projects/**/*.jsonl`
+- Verify you've used Claude Code recently
+- Try "Refresh Stats" from menu
+- Check console for errors
 
-**Incorrect costs:**
-- Verify model names in JSONL files
-- Check if pricing in `src/types/usage.ts` is up to date
+**Hook errors:**
+- Test hook manually: `echo '{"hook_event_name":"Stop"}' | node hooks/claude-hook.js`
+- Check socket exists: `ls /tmp/claudecode-macmenu.sock`
+- Review Claude Code console for hook errors
+
+## Credits
+
+**JSONL Analytics Approach:**
+Based on [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor) by Maciek-roboblog.
+
+**Hook Integration:**
+Uses Claude Code's official hooks system as documented in the [Claude Code Hooks Guide](https://code.claude.com/docs/en/hooks).
 
 ## Privacy & Security
 
-- All data is read-only from local files
-- No data is sent to external servers
-- Statistics are cached locally
-- Only reads user-owned files in `~/.claude/`
-- No modification of Claude Code data
+- ✅ All data is read-only from local files
+- ✅ No data is sent to external servers
+- ✅ Statistics are cached locally
+- ✅ Only reads user-owned files in `~/.claude/`
+- ✅ No modification of Claude Code data
+- ✅ Hooks run locally on your machine
+- ✅ IPC socket is local (no network exposure)

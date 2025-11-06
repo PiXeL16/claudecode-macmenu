@@ -3,11 +3,13 @@ import * as path from 'path';
 import { AnalyticsService } from './services/analytics';
 import { NotificationService } from './services/notification';
 import { SettingsManager } from './services/settings';
+import { HookServer, HookMessage } from './services/hookServer';
 
 let tray: Tray | null = null;
 let analyticsService: AnalyticsService;
 let notificationService: NotificationService;
 let settingsManager: SettingsManager;
+let hookServer: HookServer;
 let lastMessageCount = 0;
 
 // Prevent multiple instances
@@ -27,33 +29,57 @@ app.on('window-all-closed', (e: Event) => {
   e.preventDefault();
 });
 
-function initializeServices() {
+async function initializeServices() {
   settingsManager = new SettingsManager();
   analyticsService = new AnalyticsService();
   notificationService = new NotificationService(settingsManager);
 
-  // Setup auto-refresh and file watching
+  // Setup auto-refresh for analytics (menu display)
   analyticsService.setupAutoRefresh(() => {
     updateTrayMenu();
-    checkForNewMessages();
   });
+
+  // Start hook server for Claude Code integration
+  hookServer = new HookServer();
+  try {
+    await hookServer.start(handleHookMessage);
+    console.log('Hook server started successfully');
+    console.log('Socket path:', hookServer.getSocketPath());
+  } catch (error) {
+    console.error('Failed to start hook server:', error);
+  }
 }
 
-function checkForNewMessages() {
-  const stats = analyticsService.getStatsSync();
+/**
+ * Handle hook messages from Claude Code
+ */
+function handleHookMessage(message: HookMessage) {
+  console.log('Received hook event:', message.event);
 
-  // Check if there are new messages (potential task completion)
-  if (stats.messagesCount > lastMessageCount && lastMessageCount > 0) {
-    const newMessages = stats.messagesCount - lastMessageCount;
-    console.log(`Detected ${newMessages} new message(s)`);
+  // Trigger notification on Stop event (when Claude finishes responding)
+  if (message.event === 'Stop') {
+    notificationService.notifyTaskComplete('Claude Code has finished working');
 
-    // Notify user of task completion
-    notificationService.notifyTaskComplete(
-      `Claude Code completed ${newMessages} message${newMessages > 1 ? 's' : ''}`
-    );
+    // Refresh analytics to show updated stats
+    analyticsService.refreshStats().then(() => {
+      updateTrayMenu();
+    });
   }
 
-  lastMessageCount = stats.messagesCount;
+  // Handle session events
+  if (message.event === 'SessionStart') {
+    console.log('Claude Code session started');
+    analyticsService.refreshStats().then(() => {
+      updateTrayMenu();
+    });
+  }
+
+  if (message.event === 'SessionEnd') {
+    console.log('Claude Code session ended');
+    analyticsService.refreshStats().then(() => {
+      updateTrayMenu();
+    });
+  }
 }
 
 function createTray() {
@@ -222,6 +248,10 @@ function updateTrayMenu() {
     {
       label: 'Quit',
       click: () => {
+        // Clean up hook server
+        if (hookServer) {
+          hookServer.stop();
+        }
         app.quit();
       }
     }
