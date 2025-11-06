@@ -10,6 +10,22 @@
 
 </div>
 
+## Screenshots
+
+<div align="center">
+
+### Analytics Dashboard
+<img src="assets/screenshot2.png" alt="Analytics Dashboard" width="800"/>
+
+*Comprehensive analytics with 8 interactive charts showing usage patterns, costs, and trends*
+
+### Menu Bar Stats
+<img src="assets/screenshot.png" alt="Menu Bar" width="400"/>
+
+*Quick access to live statistics from the menu bar*
+
+</div>
+
 ## Features
 
 - **Comprehensive Analytics Dashboard**: Interactive charts and visualizations (Press `Cmd+A`)
