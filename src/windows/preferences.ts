@@ -1,6 +1,6 @@
 // ABOUTME: Preferences window manager for app settings and configuration
 // ABOUTME: Implements singleton pattern and handles IPC communication with renderer process
-import { BrowserWindow, ipcMain, shell } from 'electron';
+import { BrowserWindow, ipcMain, shell, app } from 'electron';
 import * as path from 'path';
 import { SettingsManager } from '../services/settings';
 import { NotificationService } from '../services/notification';
@@ -58,14 +58,24 @@ export class PreferencesWindow {
       }
     });
 
-    PreferencesWindow.instance.loadFile(path.join(__dirname, '../ui/preferences.html'));
+    const htmlPath = path.join(__dirname, '../ui/preferences.html');
+    console.log('Loading preferences from:', htmlPath);
+    PreferencesWindow.instance.loadFile(htmlPath);
+
+    // Open dev tools in development
+    if (!app.isPackaged) {
+      PreferencesWindow.instance.webContents.openDevTools();
+    }
 
     PreferencesWindow.instance.once('ready-to-show', () => {
       PreferencesWindow.instance?.show();
     });
 
+    PreferencesWindow.instance.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      console.error('Failed to load preferences window:', errorCode, errorDescription);
+    });
+
     PreferencesWindow.instance.on('closed', () => {
-      this.cleanup();
       PreferencesWindow.instance = null;
     });
   }

@@ -37,14 +37,24 @@ export class AnalyticsWindow {
       }
     });
 
-    AnalyticsWindow.instance.loadFile(path.join(__dirname, '../ui/analytics.html'));
+    const htmlPath = path.join(__dirname, '../ui/analytics.html');
+    console.log('Loading analytics from:', htmlPath);
+    AnalyticsWindow.instance.loadFile(htmlPath);
+
+    // Open dev tools in development
+    if (require('electron').app.isPackaged === false) {
+      AnalyticsWindow.instance.webContents.openDevTools();
+    }
 
     AnalyticsWindow.instance.once('ready-to-show', () => {
       AnalyticsWindow.instance?.show();
     });
 
+    AnalyticsWindow.instance.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+      console.error('Failed to load analytics window:', errorCode, errorDescription);
+    });
+
     AnalyticsWindow.instance.on('closed', () => {
-      this.cleanup();
       AnalyticsWindow.instance = null;
     });
   }

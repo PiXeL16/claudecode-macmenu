@@ -1,13 +1,13 @@
 {
   "name": "claudecode-macmenu",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Mac menu bar app for Claude Code with notifications and analytics",
   "main": "dist/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "npm run build && electron .",
     "build": "tsc && npm run build:react && npm run build:css && npm run copy-ui",
-    "build:react": "esbuild src/ui/renderer/analytics.tsx --bundle --outfile=dist/ui/renderer/analytics.js --platform=node --external:electron --external:recharts --external:react --external:react-dom",
+    "build:react": "esbuild src/ui/renderer/analytics.tsx --bundle --outfile=dist/ui/renderer/analytics.js --platform=browser --external:electron",
     "build:css": "tailwindcss -i ./src/ui/preferences.css -o ./dist/ui/preferences.css --minify",
     "copy-ui": "mkdir -p dist/ui/renderer && cp src/ui/preferences.html dist/ui/ && cp src/ui/analytics.html dist/ui/ && cp src/ui/renderer/preferences.js dist/ui/renderer/",
     "watch": "tsc --watch",

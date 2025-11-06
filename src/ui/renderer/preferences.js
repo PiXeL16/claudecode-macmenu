@@ -367,4 +367,20 @@ document.getElementById('resetSettings')?.addEventListener('click', async () => 
 });
 
 // Load settings when page loads
-loadSettings();
+(async () => {
+  try {
+    console.log('Preferences renderer: Starting to load settings...');
+    await loadSettings();
+    console.log('Preferences renderer: Settings loaded successfully');
+  } catch (error) {
+    console.error('Preferences renderer: Failed to load settings:', error);
+    // Show error in UI
+    document.body.innerHTML = `
+      <div style="padding: 20px; color: #ff0000; font-family: monospace;">
+        <h1>Error Loading Preferences</h1>
+        <p>${error.message}</p>
+        <pre>${error.stack}</pre>
+      </div>
+    `;
+  }
+})();

@@ -537,8 +537,28 @@ const AnalyticsDashboard: React.FC = () => {
 };
 
 // Render the app
-const container = document.getElementById('root');
-if (container) {
-  const root = createRoot(container);
-  root.render(<AnalyticsDashboard />);
-}
+(async () => {
+  try {
+    console.log('Analytics renderer: Starting to render dashboard...');
+    const container = document.getElementById('root');
+    if (container) {
+      const root = createRoot(container);
+      root.render(<AnalyticsDashboard />);
+      console.log('Analytics renderer: Dashboard rendered successfully');
+    } else {
+      throw new Error('Root container not found');
+    }
+  } catch (error) {
+    console.error('Analytics renderer: Failed to render dashboard:', error);
+    const container = document.getElementById('root');
+    if (container) {
+      container.innerHTML = `
+        <div style="padding: 20px; color: #ff0000; font-family: monospace;">
+          <h1>Error Loading Analytics</h1>
+          <p>${(error as Error).message}</p>
+          <pre>${(error as Error).stack}</pre>
+        </div>
+      `;
+    }
+  }
+})();

@@ -6,7 +6,7 @@
 
 **A macOS menu bar application that enhances Claude Code with comprehensive usage analytics and real-time notifications**
 
-[Download Latest Release](https://github.com/PiXeL16/claudecode-macmenu/releases/latest) • [View Documentation](./INSTALL.md) • [Report Issues](https://github.com/PiXeL16/claudecode-macmenu/issues)
+[Download Latest Release](https://github.com/PiXeL16/claudecode-macmenu/releases/latest) • [View Documentation](./docs/INSTALL.md) • [Report Issues](https://github.com/PiXeL16/claudecode-macmenu/issues)
 
 </div>
 
@@ -188,7 +188,7 @@ See [Homebrew docs](https://docs.brew.sh/Adding-Software-to-Homebrew) for detail
 
 That's it! You'll now get real-time notifications when Claude Code completes tasks.
 
-📖 **Detailed installation guide:** [INSTALL.md](./INSTALL.md)
+📖 **Detailed installation guide:** [INSTALL.md](./docs/INSTALL.md)
 
 ### For Developers
 
@@ -278,7 +278,7 @@ Code signing requires an Apple Developer account ($99/year). Once implemented, t
 - The app runs an HTTP server on `localhost:3456`
 - Claude Code hooks send events to the server when tasks complete
 - You get instant notifications without any polling or file watching
-- See [HOOKS.md](./HOOKS.md) for customization
+- See [HOOKS.md](./docs/HOOKS.md) for customization
 
 **Analytics (File-Based):**
 - Reads Claude Code usage data from `~/.claude/projects/**/*.jsonl`
