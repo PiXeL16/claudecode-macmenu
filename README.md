@@ -83,10 +83,13 @@
 1. Download `Claude-Code-Menu-0.2.0-arm64.dmg` from [Releases](https://github.com/PiXeL16/claudecode-macmenu/releases/latest)
 2. Open the DMG file
 3. Drag "Claude Code Menu" to your Applications folder
-4. Launch from Applications or Spotlight
-5. On first launch, you may need to:
-   - Right-click the app and select "Open" (macOS security)
-   - Allow the app to send notifications
+4. **Important: Remove quarantine attribute** (app is not code signed):
+   ```bash
+   xattr -cr "/Applications/Claude Code Menu.app"
+   ```
+5. Launch from Applications or Spotlight
+6. On first launch:
+   - Allow the app to send notifications when prompted
    - The app will prompt you to install Claude Code hooks
 
 ### Option 2: Via Homebrew (Coming Soon)
@@ -246,6 +249,28 @@ Click the Clauwd menu bar icon to access:
   - Compact mode toggle
   - Auto-start configuration
 - Quit
+
+## Troubleshooting
+
+### "App is damaged and can't be opened"
+
+This error occurs because the app is not code signed. To fix it:
+
+```bash
+# Remove the quarantine attribute
+xattr -cr "/Applications/Claude Code Menu.app"
+```
+
+**Why this happens:** macOS Gatekeeper marks downloaded apps as quarantined. Since the app isn't signed with an Apple Developer certificate, macOS blocks it. The `xattr` command removes this quarantine flag.
+
+**Alternative method:**
+1. Right-click the app in Finder
+2. Select "Open" (not double-click)
+3. Click "Open" in the security dialog
+
+### Future Plans
+
+Code signing requires an Apple Developer account ($99/year). Once implemented, this workaround won't be necessary.
 
 ## How It Works
 
