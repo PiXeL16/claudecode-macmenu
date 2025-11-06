@@ -1,6 +1,6 @@
 {
   "name": "claudecode-macmenu",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mac menu bar app for Claude Code with notifications and analytics",
   "main": "dist/main.js",
   "scripts": {
