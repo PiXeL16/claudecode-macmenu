@@ -8,18 +8,60 @@ export interface Settings {
   notificationsEnabled: boolean;
   soundEnabled: boolean;
   soundFile: string;
-  theme: 'light' | 'dark' | 'auto';
+  notificationTitleFormat: 'project' | 'path' | 'simple';
   autoStart: boolean;
   skipHooksPrompt?: boolean;
+  notificationBody: {
+    showSessionId: boolean;
+    showTotalTokens: boolean;
+    showTokenBreakdown: boolean;
+    showCacheStats: boolean;
+    showCost: boolean;
+    showTimestamp: boolean;
+    showStopReason: boolean;
+    showResponsePreview: boolean;
+    previewLength: number;
+  };
+  menuVisibility: {
+    compactMode: boolean;
+    showMessages: boolean;
+    showTokens: boolean;
+    showCosts: boolean;
+    showBurnRate: boolean;
+    showSessions: boolean;
+    showModelBreakdown: boolean;
+  };
+  statsRefreshInterval: number; // seconds
 }
 
 const DEFAULT_SETTINGS: Settings = {
   notificationsEnabled: true,
   soundEnabled: true,
-  soundFile: 'default',
-  theme: 'auto',
+  soundFile: 'glass',
+  notificationTitleFormat: 'path',
   autoStart: false,
-  skipHooksPrompt: false
+  skipHooksPrompt: false,
+  notificationBody: {
+    showSessionId: true,
+    showTotalTokens: true,
+    showTokenBreakdown: false,
+    showCacheStats: false,
+    showCost: true,
+    showTimestamp: true,
+    showStopReason: false,
+    showResponsePreview: false,
+    previewLength: 100
+  },
+  menuVisibility: {
+    compactMode: false,
+    showMessages: true,
+    showTokens: true,
+    showCosts: true,
+    showBurnRate: true,
+    showSessions: true,
+    showModelBreakdown: true
+  },
+  statsRefreshInterval: 30
 };
 
 export class SettingsManager {
@@ -36,7 +78,21 @@ export class SettingsManager {
     try {
       if (fs.existsSync(this.settingsPath)) {
         const data = fs.readFileSync(this.settingsPath, 'utf-8');
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
+        const userSettings = JSON.parse(data);
+
+        // Deep merge to ensure nested objects have defaults
+        return {
+          ...DEFAULT_SETTINGS,
+          ...userSettings,
+          notificationBody: {
+            ...DEFAULT_SETTINGS.notificationBody,
+            ...(userSettings.notificationBody || {})
+          },
+          menuVisibility: {
+            ...DEFAULT_SETTINGS.menuVisibility,
+            ...(userSettings.menuVisibility || {})
+          }
+        };
       }
     } catch (error) {
       console.error('Failed to load settings:', error);

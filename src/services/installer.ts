@@ -9,29 +9,29 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 
 export class InstallerService {
-  private hooksConfigPath: string;
-  private hooksBackupPath: string;
+  private settingsPath: string;
+  private settingsBackupPath: string;
 
   constructor() {
     const home = process.env.HOME || process.env.USERPROFILE || '';
-    this.hooksConfigPath = path.join(home, '.config', 'claude-code', 'hooks.json');
-    this.hooksBackupPath = this.hooksConfigPath + '.backup';
+    this.settingsPath = path.join(home, '.claude', 'settings.json');
+    this.settingsBackupPath = this.settingsPath + '.backup';
   }
 
   async checkHooksInstalled(): Promise<boolean> {
     try {
-      if (!fs.existsSync(this.hooksConfigPath)) {
+      if (!fs.existsSync(this.settingsPath)) {
         return false;
       }
 
-      const content = fs.readFileSync(this.hooksConfigPath, 'utf-8');
-      const hooks = JSON.parse(content);
+      const content = fs.readFileSync(this.settingsPath, 'utf-8');
+      const settings = JSON.parse(content);
 
       // Check if our hooks are present
       return !!(
-        hooks.hooks?.Stop ||
-        hooks.hooks?.SubagentStop ||
-        hooks.hooks?.PostToolUse
+        settings.hooks?.Stop?.length > 0 ||
+        settings.hooks?.SubagentStop?.length > 0 ||
+        settings.hooks?.PostToolUse?.length > 0
       );
     } catch (error) {
       console.error('Error checking hooks:', error);
@@ -41,75 +41,65 @@ export class InstallerService {
 
   async installHooks(port: number = 3456): Promise<{ success: boolean; message: string }> {
     try {
-      // Ensure config directory exists
-      const configDir = path.dirname(this.hooksConfigPath);
-      if (!fs.existsSync(configDir)) {
-        fs.mkdirSync(configDir, { recursive: true });
+      // Backup existing settings if they exist
+      if (fs.existsSync(this.settingsPath)) {
+        fs.copyFileSync(this.settingsPath, this.settingsBackupPath);
       }
 
-      // Backup existing hooks if they exist
-      if (fs.existsSync(this.hooksConfigPath)) {
-        fs.copyFileSync(this.hooksConfigPath, this.hooksBackupPath);
+      // Read existing settings
+      let settings: any = {};
+      if (fs.existsSync(this.settingsPath)) {
+        const content = fs.readFileSync(this.settingsPath, 'utf-8');
+        settings = JSON.parse(content);
       }
 
-      // Create hooks configuration
-      const hooksConfig = {
-        hooks: {
-          Stop: [
-            {
-              matcher: '*',
-              hooks: [
-                {
-                  type: 'command',
-                  command: `curl -s -X POST http://localhost:${port}/hook -H 'Content-Type: application/json' -d '{"event":"Stop","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > /dev/null 2>&1 &`
-                }
-              ]
-            }
-          ],
-          SubagentStop: [
-            {
-              matcher: '*',
-              hooks: [
-                {
-                  type: 'command',
-                  command: `curl -s -X POST http://localhost:${port}/hook -H 'Content-Type: application/json' -d '{"event":"SubagentStop","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > /dev/null 2>&1 &`
-                }
-              ]
-            }
-          ],
-          PostToolUse: [
-            {
-              matcher: 'Bash',
-              hooks: [
-                {
-                  type: 'command',
-                  command: `curl -s -X POST http://localhost:${port}/hook -H 'Content-Type: application/json' -d '{"event":"PostToolUse","tool":"Bash","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > /dev/null 2>&1 &`
-                }
-              ]
-            },
-            {
-              matcher: 'Task',
-              hooks: [
-                {
-                  type: 'command',
-                  command: `curl -s -X POST http://localhost:${port}/hook -H 'Content-Type: application/json' -d '{"event":"PostToolUse","tool":"Task","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > /dev/null 2>&1 &`
-                }
-              ]
-            }
-          ]
-        }
+      // Update hooks in settings
+      settings.hooks = {
+        Stop: [
+          {
+            matcher: '*',
+            hooks: [
+              {
+                type: 'command',
+                command: `curl -s -X POST http://localhost:${port}/hook -H 'Content-Type: application/json' -d '{"event":"Stop"}' >> /tmp/claudecode-hooks.log 2>&1 &`
+              }
+            ]
+          }
+        ],
+        SubagentStop: [
+          {
+            matcher: '*',
+            hooks: [
+              {
+                type: 'command',
+                command: `curl -s -X POST http://localhost:${port}/hook -H 'Content-Type: application/json' -d '{"event":"SubagentStop"}' >> /tmp/claudecode-hooks.log 2>&1 &`
+              }
+            ]
+          }
+        ],
+        PostToolUse: [
+          {
+            matcher: 'Bash',
+            hooks: [
+              {
+                type: 'command',
+                command: `curl -s -X POST http://localhost:${port}/hook -H 'Content-Type: application/json' -d '{"event":"PostToolUse","tool":"Bash"}' >> /tmp/claudecode-hooks.log 2>&1 &`
+              }
+            ]
+          }
+        ]
       };
 
-      // Write hooks configuration
+      // Write updated settings
       fs.writeFileSync(
-        this.hooksConfigPath,
-        JSON.stringify(hooksConfig, null, 2),
+        this.settingsPath,
+        JSON.stringify(settings, null, 2),
         'utf-8'
       );
 
       return {
         success: true,
-        message: 'Hooks installed successfully! Restart Claude Code for changes to take effect.'
+        message: 'Hooks installed successfully! They are now active.'
       };
     } catch (error) {
       console.error('Error installing hooks:', error);
@@ -121,8 +111,8 @@ export class InstallerService {
   }
 
   async openHooksConfig(): Promise<void> {
-    if (fs.existsSync(this.hooksConfigPath)) {
-      await shell.openPath(this.hooksConfigPath);
+    if (fs.existsSync(this.settingsPath)) {
+      await shell.openPath(this.settingsPath);
     } else {
       dialog.showMessageBox({
         type: 'info',
@@ -141,18 +131,18 @@ export class InstallerService {
 
   async restoreHooksBackup(): Promise<{ success: boolean; message: string }> {
     try {
-      if (!fs.existsSync(this.hooksBackupPath)) {
+      if (!fs.existsSync(this.settingsBackupPath)) {
         return {
           success: false,
           message: 'No backup file found'
         };
       }
 
-      fs.copyFileSync(this.hooksBackupPath, this.hooksConfigPath);
+      fs.copyFileSync(this.settingsBackupPath, this.settingsPath);
 
       return {
         success: true,
-        message: 'Hooks backup restored successfully'
+        message: 'Settings backup restored successfully'
       };
     } catch (error) {
       return {

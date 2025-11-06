@@ -19,6 +19,9 @@ export class AnalyticsService {
   private lastUpdate: number = 0;
   private updateInterval = 60000; // Update cache every 60 seconds
   private appStartTime: number;
+  private latestEntry: UsageEntry | null = null;
+  private watchers: fs.FSWatcher[] = [];
+  private refreshInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.usageReader = new UsageReader();
@@ -36,6 +39,16 @@ export class AnalyticsService {
       // Get usage data from last 8 days (192 hours)
       const cutoffDate = new Date(Date.now() - 192 * 60 * 60 * 1000);
       const entries = await this.usageReader.readAllUsageData(cutoffDate);
+      console.log(`Loaded ${entries.length} usage entries`);
+
+      // Store the latest entry for notifications
+      if (entries.length > 0) {
+        this.latestEntry = entries.reduce((latest, entry) => {
+          const latestDate = new Date(latest.timestamp);
+          const entryDate = new Date(entry.timestamp);
+          return entryDate > latestDate ? entry : latest;
+        });
+      }
 
       this.cachedStats = this.calculateStats(entries);
       this.lastUpdate = Date.now();
@@ -54,8 +67,10 @@ export class AnalyticsService {
    */
   private calculateStats(entries: UsageEntry[]): UsageStats {
     const now = Date.now();
+    // Calculate today's start in UTC (not local time)
     const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    console.log(`Calculating stats for ${entries.length} entries. Today (UTC) starts at: ${todayStart.toISOString()}`);
 
     // Initialize counters
     let totalTokensAllTime = 0;
@@ -96,6 +111,9 @@ export class AnalyticsService {
         totalTokensToday += totalTokens;
         totalCostToday += cost;
         messagesToday++;
+      } else if (entries.indexOf(entry) < 5) {
+        // Debug: log first 5 entries that don't match
+        console.log(`Entry NOT today: ${entry.timestamp} (${entryDate.toISOString()}) vs today ${todayStart.toISOString()}`);
       }
 
       // Model breakdown
@@ -196,6 +214,13 @@ export class AnalyticsService {
   }
 
   /**
+   * Get the latest usage entry for notifications
+   */
+  getLatestEntry(): UsageEntry | null {
+    return this.latestEntry;
+  }
+
+  /**
    * Get empty stats structure
    */
   private getEmptyStats(): UsageStats {
@@ -224,21 +249,45 @@ export class AnalyticsService {
 
   /**
    * Setup file watching to auto-refresh stats
+   * Note: Notifications are now handled by hookServer, not file watching
    */
   setupAutoRefresh(callback?: () => void): fs.FSWatcher[] {
-    // Watch for file changes
-    const watchers = this.usageReader.watchForChanges(async () => {
+    // Clean up any existing watchers/intervals to prevent leaks
+    this.cleanup();
+
+    // Watch for file changes - only for analytics refresh
+    this.watchers = this.usageReader.watchForChanges(async () => {
       console.log('Usage data changed, refreshing stats...');
       await this.refreshStats();
+
+      // Update menu immediately
       if (callback) callback();
     });
 
     // Also refresh periodically
-    setInterval(async () => {
+    this.refreshInterval = setInterval(async () => {
       await this.refreshStats();
       if (callback) callback();
     }, this.updateInterval);
 
-    return watchers;
+    return this.watchers;
+  }
+
+  /**
+   * Clean up all resources to prevent memory leaks
+   */
+  cleanup(): void {
+    // Close all file watchers
+    if (this.watchers.length > 0) {
+      console.log(`Closing ${this.watchers.length} file watchers...`);
+      this.watchers.forEach(watcher => watcher.close());
+      this.watchers = [];
+    }
+
+    // Clear periodic refresh interval
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
   }
 }

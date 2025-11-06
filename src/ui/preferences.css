@@ -1,0 +1,309 @@
+/* ABOUTME: Tailwind CSS and DaisyUI styles for the preferences window */
+/* ABOUTME: Provides responsive, modern UI components with Claude Code console aesthetic */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Terminal Console Theme */
+:root {
+  --term-bg: #0a0a0a;
+  --term-surface: #1a1a1a;
+  --term-surface-hover: #252525;
+  --term-border: #333333;
+  --term-text: #e0e0e0;
+  --term-text-dim: #808080;
+  --term-green: #00ff00;
+  --term-orange: #ff9500;
+  --term-red: #ff3b30;
+  --term-yellow: #ffcc00;
+  --term-blue: #0a84ff;
+  --term-font: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+}
+
+body {
+  font-family: var(--term-font);
+  font-size: 12px;
+  background: var(--term-bg);
+  color: var(--term-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.4;
+}
+
+/* Override DaisyUI dark theme with terminal colors */
+[data-theme="dark"] {
+  --b1: var(--term-bg);
+  --b2: var(--term-surface);
+  --b3: var(--term-surface-hover);
+  --bc: var(--term-text);
+  --p: var(--term-orange);
+  --pf: var(--term-orange);
+  --s: var(--term-green);
+  --a: var(--term-yellow);
+  --er: var(--term-red);
+}
+
+/* Compact container */
+.container {
+  padding: 1rem !important;
+  max-width: 100% !important;
+}
+
+/* Custom styles for tab content visibility */
+.tab-content.hidden {
+  display: none;
+}
+
+.tab-content {
+  display: block;
+}
+
+/* Tab styling - terminal style */
+.tabs-boxed {
+  background: var(--term-surface);
+  border: 1px solid var(--term-border);
+  border-radius: 0;
+  padding: 2px;
+}
+
+.tab {
+  color: var(--term-text-dim);
+  transition: all 0.1s ease;
+  font-weight: normal;
+  border-radius: 0;
+  font-size: 11px;
+  padding: 0.4rem 0.8rem;
+}
+
+.tab:hover {
+  color: var(--term-text);
+  background: var(--term-surface-hover);
+}
+
+.tab-active {
+  color: var(--term-orange) !important;
+  background: var(--term-bg) !important;
+  border: 1px solid var(--term-border);
+}
+
+/* Card styling - terminal blocks */
+.card {
+  background: var(--term-surface);
+  border: 1px solid var(--term-border);
+  border-radius: 0;
+  transition: none;
+}
+
+.card:hover {
+  border-color: var(--term-border);
+}
+
+.card-title {
+  color: var(--term-text);
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-body {
+  padding: 1rem !important;
+}
+
+/* Form controls - terminal style */
+.label-text {
+  color: var(--term-text);
+  font-weight: normal;
+  font-size: 11px;
+}
+
+.label-text-alt {
+  color: var(--term-text-dim);
+  font-size: 10px;
+}
+
+.input, .select {
+  background: var(--term-bg);
+  border: 1px solid var(--term-border);
+  color: var(--term-text);
+  transition: none;
+  border-radius: 0;
+  font-size: 12px;
+  padding: 0.4rem 0.6rem;
+}
+
+/* Select dropdown arrow */
+.select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23808080' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  padding-right: 2rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.input:focus, .select:focus {
+  border-color: var(--term-orange);
+  outline: none;
+  box-shadow: none;
+}
+
+.input::placeholder {
+  color: var(--term-text-dim);
+}
+
+/* Toggle switches */
+.toggle {
+  border-color: var(--term-border);
+}
+
+.toggle:checked {
+  background: var(--term-green);
+  border-color: var(--term-green);
+}
+
+/* Checkboxes */
+.checkbox {
+  border-color: var(--term-border);
+  border-radius: 0;
+}
+
+.checkbox:checked {
+  background: var(--term-orange);
+  border-color: var(--term-orange);
+}
+
+/* Radio buttons */
+.radio {
+  border-color: var(--term-border);
+}
+
+.radio:checked {
+  background: var(--term-orange);
+  border-color: var(--term-orange);
+}
+
+/* Buttons - terminal style */
+.btn {
+  font-weight: normal;
+  transition: none;
+  border-radius: 0;
+  font-size: 11px;
+  padding: 0.5rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-primary {
+  background: var(--term-orange);
+  border-color: var(--term-orange);
+  color: var(--term-bg);
+}
+
+.btn-primary:hover {
+  background: var(--term-orange);
+  border-color: var(--term-text);
+  opacity: 0.9;
+}
+
+.btn-outline {
+  border-color: var(--term-border);
+  color: var(--term-text);
+  background: transparent;
+}
+
+.btn-outline:hover {
+  background: var(--term-surface-hover);
+  border-color: var(--term-orange);
+  color: var(--term-text);
+}
+
+.btn-error {
+  background: var(--term-red);
+  border-color: var(--term-red);
+  color: var(--term-bg);
+}
+
+.btn-error:hover {
+  opacity: 0.9;
+}
+
+.btn-warning {
+  background: var(--term-yellow);
+  border-color: var(--term-yellow);
+  color: var(--term-bg);
+}
+
+.btn-warning:hover {
+  opacity: 0.9;
+}
+
+/* Alerts - terminal style */
+.alert {
+  border-radius: 0;
+  border: 1px solid;
+  font-size: 11px;
+  padding: 0.75rem;
+}
+
+.alert-info {
+  background: rgba(10, 132, 255, 0.1);
+  border-color: var(--term-blue);
+  color: var(--term-blue);
+}
+
+.alert-success {
+  background: rgba(0, 255, 0, 0.1);
+  border-color: var(--term-green);
+  color: var(--term-green);
+}
+
+.alert-warning {
+  background: rgba(255, 204, 0, 0.1);
+  border-color: var(--term-yellow);
+  color: var(--term-yellow);
+}
+
+.alert-error {
+  background: rgba(255, 59, 48, 0.1);
+  border-color: var(--term-red);
+  color: var(--term-red);
+}
+
+/* Disabled state */
+.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* No transitions - instant terminal feel */
+html {
+  transition: none;
+}
+
+/* Scrollbar styling - terminal style */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--term-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--term-border);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--term-surface-hover);
+}
+
+/* SVG icons */
+svg {
+  width: 14px;
+  height: 14px;
+}

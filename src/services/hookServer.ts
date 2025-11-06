@@ -2,6 +2,7 @@
 // ABOUTME: Listens on localhost for POST requests containing event data from Claude Code hooks
 import * as http from 'http';
 import { NotificationService } from './notification';
+import { AnalyticsService } from './analytics';
 
 export interface HookEvent {
   event: 'Stop' | 'SubagentStop' | 'PostToolUse' | 'PreToolUse' | 'UserPromptSubmit';
@@ -16,6 +17,7 @@ export class HookServer {
 
   constructor(
     private notificationService: NotificationService,
+    private analyticsService: AnalyticsService,
     port: number = 3456
   ) {
     this.port = port;
@@ -96,21 +98,27 @@ export class HookServer {
 
     switch (event.event) {
       case 'Stop':
+        // Get latest usage entry for detailed notification
+        const latestEntry = this.analyticsService.getLatestEntry();
         this.notificationService.notifyTaskComplete(
-          'Claude Code finished responding'
+          'Claude Code finished responding',
+          latestEntry || undefined
         );
         break;
 
       case 'SubagentStop':
+        // Get latest usage entry for detailed notification
+        const subagentEntry = this.analyticsService.getLatestEntry();
         this.notificationService.notifyTaskComplete(
-          'Claude Code task completed'
+          'Claude Code task completed',
+          subagentEntry || undefined
         );
         break;
 
       case 'PostToolUse':
-        if (event.tool) {
-          this.handleToolComplete(event.tool, event.context);
-        }
+        // Don't notify on PostToolUse - too noisy
+        // User only cares when Claude stops, not every tool execution
+        console.log(`Tool completed: ${event.tool}`);
         break;
 
       case 'UserPromptSubmit':
@@ -123,20 +131,4 @@ export class HookServer {
     }
   }
 
-  private handleToolComplete(tool: string, context?: string): void {
-    const notifiableTools = ['Bash', 'Task', 'Build', 'Test'];
-
-    if (notifiableTools.includes(tool)) {
-      let message = `${tool} completed`;
-      if (context) {
-        // Truncate context if too long
-        const shortContext = context.length > 50
-          ? context.substring(0, 47) + '...'
-          : context;
-        message += `: ${shortContext}`;
-      }
-
-      this.notificationService.notifyTaskComplete(message);
-    }
-  }
 }

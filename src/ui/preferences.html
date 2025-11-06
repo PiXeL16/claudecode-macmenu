@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preferences</title>
+  <link rel="stylesheet" href="preferences.css">
+</head>
+<body class="bg-base-100">
+  <div class="container mx-auto p-6 max-w-4xl">
+    <!-- Tab Navigation -->
+    <div role="tablist" class="tabs tabs-boxed mb-6">
+      <button role="tab" class="tab tab-active" data-tab="general">General</button>
+      <button role="tab" class="tab" data-tab="notifications">Notifications</button>
+      <button role="tab" class="tab" data-tab="menu">Menu Display</button>
+      <button role="tab" class="tab" data-tab="advanced">Advanced</button>
+    </div>
+
+    <!-- General Tab -->
+    <div class="tab-content" id="general">
+      <!-- Startup Section -->
+      <div class="card bg-base-200 shadow-xl mb-4">
+        <div class="card-body">
+          <h2 class="card-title">Startup</h2>
+          <div class="form-control">
+            <label class="label cursor-pointer">
+              <span class="label-text">Start at Login</span>
+              <input type="checkbox" id="autoStart" class="toggle toggle-primary" />
+            </label>
+          </div>
+          <div class="form-control">
+            <label class="label cursor-pointer">
+              <span class="label-text">Skip hooks installation prompt</span>
+              <input type="checkbox" id="skipHooksPrompt" class="toggle toggle-primary" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Refresh Intervals Section -->
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Refresh Intervals</h2>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Stats refresh (seconds)</span>
+            </label>
+            <input type="number" id="statsRefreshInterval" min="10" max="300" step="5"
+                   class="input input-bordered w-full max-w-xs" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications Tab -->
+    <div class="tab-content hidden" id="notifications">
+      <!-- Notification Settings Section -->
+      <div class="card bg-base-200 shadow-xl mb-4">
+        <div class="card-body">
+          <h2 class="card-title">Notification Settings</h2>
+          <div class="form-control">
+            <label class="label cursor-pointer">
+              <span class="label-text">Enable notifications</span>
+              <input type="checkbox" id="notificationsEnabled" class="toggle toggle-primary" />
+            </label>
+          </div>
+          <div class="alert alert-info mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Permission Status: <span id="permissionStatus" class="font-bold">Checking...</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Format Section -->
+      <div class="card bg-base-200 shadow-xl mb-4">
+        <div class="card-body">
+          <h2 class="card-title">Notification Format</h2>
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Title Format</span>
+            </label>
+            <select id="notificationTitleFormat" class="select select-bordered w-full max-w-xs">
+              <option value="project">Project Name (e.g., "my-project")</option>
+              <option value="path">Full Path (e.g., "/Users/.../my-project")</option>
+              <option value="simple">Simple (just "Claude Code")</option>
+            </select>
+            <label class="label">
+              <span class="label-text-alt">Choose how the notification title displays the project</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Body Content Section -->
+      <div class="card bg-base-200 shadow-xl mb-4">
+        <div class="card-body">
+          <h2 class="card-title">Notification Body Content</h2>
+          <p class="text-sm opacity-70 mb-4">Choose what information to show in the notification</p>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Session ID</span>
+                <input type="checkbox" id="showSessionId" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Total Tokens</span>
+                <input type="checkbox" id="showTotalTokens" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Token Breakdown</span>
+                <input type="checkbox" id="showTokenBreakdown" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Cache Stats</span>
+                <input type="checkbox" id="showCacheStats" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Cost</span>
+                <input type="checkbox" id="showCost" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Timestamp</span>
+                <input type="checkbox" id="showTimestamp" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Stop Reason</span>
+                <input type="checkbox" id="showStopReason" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Response Preview</span>
+                <input type="checkbox" id="showResponsePreview" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-control mt-4">
+            <label class="label">
+              <span class="label-text">Preview Length (characters)</span>
+            </label>
+            <input type="number" id="previewLength" min="50" max="200" step="10"
+                   class="input input-bordered w-full max-w-xs" />
+            <label class="label">
+              <span class="label-text-alt">How many characters to show in response preview</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sound Settings Section -->
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Sound Settings</h2>
+          <div class="form-control">
+            <label class="label cursor-pointer">
+              <span class="label-text">Enable sound</span>
+              <input type="checkbox" id="soundEnabled" class="toggle toggle-primary" />
+            </label>
+          </div>
+          <div class="form-control mt-4">
+            <label class="label">
+              <span class="label-text">Notification Sound</span>
+            </label>
+            <select id="soundFile" class="select select-bordered w-full max-w-xs">
+              <option disabled selected>Select a sound</option>
+            </select>
+          </div>
+          <div class="card-actions justify-end mt-4">
+            <button id="testSound" class="btn btn-outline">Test Sound</button>
+            <button id="testNotification" class="btn btn-primary">Test Notification</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu Display Tab -->
+    <div class="tab-content hidden" id="menu">
+      <!-- Display Mode Section -->
+      <div class="card bg-base-200 shadow-xl mb-4">
+        <div class="card-body">
+          <h2 class="card-title">Display Mode</h2>
+          <div class="form-control">
+            <label class="label cursor-pointer">
+              <span class="label-text">Compact mode (shows only essential stats)</span>
+              <input type="checkbox" id="compactMode" class="toggle toggle-primary" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Visibility Section -->
+      <div class="card bg-base-200 shadow-xl" id="visibilitySection">
+        <div class="card-body">
+          <h2 class="card-title">Statistics Visibility</h2>
+          <p class="text-sm opacity-70 mb-4">Choose which statistics to display in the menu bar</p>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Show Messages</span>
+                <input type="checkbox" id="showMessages" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Show Tokens</span>
+                <input type="checkbox" id="showTokens" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Show Costs</span>
+                <input type="checkbox" id="showCosts" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Show Burn Rate</span>
+                <input type="checkbox" id="showBurnRate" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Show Sessions</span>
+                <input type="checkbox" id="showSessions" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+            <div class="form-control">
+              <label class="label cursor-pointer">
+                <span class="label-text">Show Model Breakdown</span>
+                <input type="checkbox" id="showModelBreakdown" class="checkbox checkbox-primary" />
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advanced Tab -->
+    <div class="tab-content hidden" id="advanced">
+      <!-- Claude Code Hooks Section -->
+      <div class="card bg-base-200 shadow-xl mb-4">
+        <div class="card-body">
+          <h2 class="card-title">Claude Code Hooks</h2>
+          <p class="text-sm opacity-70 mb-4">Hooks enable real-time notifications when Claude finishes responding</p>
+
+          <div class="alert" id="hooksStatus">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span id="hooksStatusText">Checking...</span>
+          </div>
+
+          <div class="flex flex-col gap-4 mt-4">
+            <button id="installHooks" class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Install/Reinstall Hooks
+            </button>
+            <button id="openHooksConfig" class="btn btn-outline">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Open Hooks Config
+            </button>
+            <button id="restoreHooksBackup" class="btn btn-outline btn-warning">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+              Restore Hooks Backup
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Management Section -->
+      <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+          <h2 class="card-title">Data Management</h2>
+          <div class="flex flex-col gap-4 mt-4">
+            <button id="openSettingsFile" class="btn btn-outline">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              Open Settings File
+            </button>
+            <button id="resetSettings" class="btn btn-error">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Reset All Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer/preferences.js"></script>
+</body>
+</html>

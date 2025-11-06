@@ -5,8 +5,11 @@
   "main": "dist/main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "tsc && electron .",
-    "build": "tsc",
+    "dev": "npm run build && electron .",
+    "build": "tsc && npm run build:react && npm run build:css && npm run copy-ui",
+    "build:react": "esbuild src/ui/renderer/analytics.tsx --bundle --outfile=dist/ui/renderer/analytics.js --platform=node --external:electron --external:recharts --external:react --external:react-dom",
+    "build:css": "tailwindcss -i ./src/ui/preferences.css -o ./dist/ui/preferences.css --minify",
+    "copy-ui": "mkdir -p dist/ui/renderer && cp src/ui/preferences.html dist/ui/ && cp src/ui/analytics.html dist/ui/ && cp src/ui/renderer/preferences.js dist/ui/renderer/",
     "watch": "tsc --watch",
     "package": "electron-builder",
     "test": "jest",
@@ -24,9 +27,15 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^20.10.0",
+    "autoprefixer": "^10.4.21",
+    "daisyui": "^4.12.24",
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
+    "esbuild": "^0.25.12",
     "jest": "^30.2.0",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^3.4.18",
     "ts-jest": "^29.4.5",
     "typescript": "^5.3.3"
   },
@@ -44,5 +53,12 @@
       "dist/**/*",
       "assets/**/*"
     ]
+  },
+  "dependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "recharts": "^3.3.0"
   }
 }

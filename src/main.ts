@@ -7,6 +7,9 @@ import { NotificationService } from './services/notification';
 import { SettingsManager } from './services/settings';
 import { HookServer } from './services/hookServer';
 import { InstallerService } from './services/installer';
+import { PreferencesWindow } from './windows/preferences';
+import { AnalyticsWindow } from './windows/analytics';
+import { UsageReader } from './services/usageReader';
 
 let tray: Tray | null = null;
 let analyticsService: AnalyticsService;
@@ -14,6 +17,10 @@ let notificationService: NotificationService;
 let settingsManager: SettingsManager;
 let hookServer: HookServer;
 let installerService: InstallerService;
+let preferencesWindow: PreferencesWindow;
+let analyticsWindow: AnalyticsWindow;
+let usageReader: UsageReader;
+let menuUpdateInterval: NodeJS.Timeout | null = null;
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -22,6 +29,9 @@ if (!gotTheLock) {
 }
 
 app.dock?.hide(); // Hide from dock on macOS
+
+// Set app name for notifications
+app.setName('Claude Code Menu');
 
 app.whenReady().then(async () => {
   await initializeServices();
@@ -36,8 +46,17 @@ async function initializeServices() {
   settingsManager = new SettingsManager();
   analyticsService = new AnalyticsService();
   notificationService = new NotificationService(settingsManager);
-  hookServer = new HookServer(notificationService);
+  hookServer = new HookServer(notificationService, analyticsService);
   installerService = new InstallerService();
+  usageReader = new UsageReader();
+  analyticsWindow = new AnalyticsWindow(usageReader);
+  preferencesWindow = new PreferencesWindow(
+    settingsManager,
+    notificationService,
+    installerService,
+    hookServer.getPort(),
+    () => updateTrayMenu()
+  );
 
   // Start the hook server to receive notifications from Claude Code
   try {
@@ -47,7 +66,8 @@ async function initializeServices() {
     console.error('Failed to start hook server:', error);
   }
 
-  // Setup auto-refresh for analytics (no more message count checking)
+  // Setup auto-refresh for analytics (menu updates only)
+  // Notifications are handled by hookServer when Stop/SubagentStop events fire
   analyticsService.setupAutoRefresh(() => {
     updateTrayMenu();
   });
@@ -90,10 +110,24 @@ async function checkHooksOnStartup() {
   }
 }
 
-// Cleanup on app quit
+// Cleanup on app quit to prevent memory leaks
 app.on('will-quit', () => {
+  console.log('App quitting, cleaning up resources...');
+
+  // Stop hook server
   if (hookServer) {
     hookServer.stop();
+  }
+
+  // Clean up analytics service (file watchers, intervals, timers)
+  if (analyticsService) {
+    analyticsService.cleanup();
+  }
+
+  // Clear menu update interval
+  if (menuUpdateInterval) {
+    clearInterval(menuUpdateInterval);
+    menuUpdateInterval = null;
   }
 });
 
@@ -107,7 +141,7 @@ function createTray() {
   updateTrayMenu();
 
   // Update menu periodically to show live stats
-  setInterval(() => {
+  menuUpdateInterval = setInterval(() => {
     updateTrayMenu();
   }, 30000); // Update every 30 seconds
 }
@@ -138,190 +172,111 @@ function updateTrayMenu() {
 
   const stats = analyticsService.getStatsSync();
   const settings = settingsManager.getSettings();
+  const vis = settings.menuVisibility;
+  const compactMode = vis?.compactMode || false;
 
-  const contextMenu = Menu.buildFromTemplate([
+  const menuItems: any[] = [
     {
-      label: '📊 Claude Code Usage',
-      enabled: false
-    },
-    { type: 'separator' },
-    {
-      label: '💬 Messages',
-      enabled: false
-    },
-    {
-      label: `  Today: ${stats.messagesToday}`,
-      enabled: false
-    },
-    {
-      label: `  Total: ${stats.messagesCount}`,
-      enabled: false
-    },
-    { type: 'separator' },
-    {
-      label: '🎯 Tokens',
-      enabled: false
-    },
-    {
-      label: `  Today: ${formatNumber(stats.totalTokensToday)}`,
-      enabled: false
-    },
-    {
-      label: `  Total: ${formatNumber(stats.totalTokensAllTime)}`,
-      enabled: false
-    },
-    {
-      label: `  Current Session: ${formatNumber(stats.currentSessionTokens)}`,
-      enabled: false
-    },
-    { type: 'separator' },
-    {
-      label: '💰 Costs',
-      enabled: false
-    },
-    {
-      label: `  Today: $${stats.totalCostToday.toFixed(2)}`,
-      enabled: false
-    },
-    {
-      label: `  Total: $${stats.totalCostAllTime.toFixed(2)}`,
-      enabled: false
-    },
-    {
-      label: `  Current Session: $${stats.currentSessionCost.toFixed(2)}`,
-      enabled: false
-    },
-    { type: 'separator' },
-    {
-      label: '🔥 Burn Rate',
-      enabled: false
-    },
-    {
-      label: `  ${Math.round(stats.currentBurnRate.tokens_per_minute)} tokens/min`,
-      enabled: false
-    },
-    {
-      label: `  $${stats.currentBurnRate.cost_per_hour.toFixed(2)}/hour`,
-      enabled: false
-    },
-    { type: 'separator' },
-    {
-      label: '📅 Sessions (5h blocks)',
-      enabled: false
-    },
-    {
-      label: `  Today: ${stats.sessionsToday}`,
-      enabled: false
-    },
-    {
-      label: `  Total: ${stats.totalSessions}`,
-      enabled: false
-    },
-    { type: 'separator' },
-    {
-      label: '🔔 Notifications (Hook-based)',
-      enabled: false
-    },
-    {
-      label: `  Server: localhost:${hookServer.getPort()}`,
-      enabled: false
-    },
-    {
-      label: '  Enabled',
-      type: 'checkbox',
-      checked: settings.notificationsEnabled,
+      label: '📊 Analytics',
+      accelerator: 'Command+A',
       click: () => {
-        settingsManager.updateSettings({
-          notificationsEnabled: !settings.notificationsEnabled
-        });
-        updateTrayMenu();
+        analyticsWindow.show();
       }
     },
-    {
-      label: '  Sound',
-      type: 'checkbox',
-      checked: settings.soundEnabled,
-      click: () => {
-        settingsManager.updateSettings({
-          soundEnabled: !settings.soundEnabled
-        });
-        updateTrayMenu();
-      }
-    },
-    { type: 'separator' },
-    {
+    { type: 'separator' }
+  ];
+
+  // Messages section
+  if (vis?.showMessages !== false) {
+    menuItems.push({
+      label: `💬 Today: ${stats.messagesToday} msgs | Total: ${stats.messagesCount} msgs`,
+      enabled: true,
+      click: () => {} // No-op click to make it appear enabled
+    });
+  }
+
+  // Tokens section
+  if (vis?.showTokens !== false) {
+    const tokenLabel = compactMode
+      ? `🎯 Today: ${formatNumber(stats.totalTokensToday)} tokens`
+      : `🎯 Today: ${formatNumber(stats.totalTokensToday)} | Total: ${formatNumber(stats.totalTokensAllTime)} | Session: ${formatNumber(stats.currentSessionTokens)}`;
+    menuItems.push({
+      label: tokenLabel,
+      enabled: true,
+      click: () => {}
+    });
+  }
+
+  // Costs section
+  if (vis?.showCosts !== false) {
+    const costLabel = compactMode
+      ? `💰 Today: $${stats.totalCostToday.toFixed(2)}`
+      : `💰 Today: $${stats.totalCostToday.toFixed(2)} | Total: $${stats.totalCostAllTime.toFixed(2)} | Session: $${stats.currentSessionCost.toFixed(2)}`;
+    menuItems.push({
+      label: costLabel,
+      enabled: true,
+      click: () => {}
+    });
+  }
+
+  // Burn Rate section
+  if (vis?.showBurnRate !== false) {
+    const burnLabel = compactMode
+      ? `🔥 ${Math.round(stats.currentBurnRate.tokens_per_minute)} tokens/min`
+      : `🔥 ${Math.round(stats.currentBurnRate.tokens_per_minute)} tokens/min | $${stats.currentBurnRate.cost_per_hour.toFixed(2)}/hour`;
+    menuItems.push({
+      label: burnLabel,
+      enabled: true,
+      click: () => {}
+    });
+  }
+
+  // Sessions section
+  if (vis?.showSessions !== false) {
+    const sessionLabel = compactMode
+      ? `📅 Today: ${stats.sessionsToday} sessions`
+      : `📅 Today: ${stats.sessionsToday} | Total: ${stats.totalSessions} sessions (5h blocks)`;
+    menuItems.push({
+      label: sessionLabel,
+      enabled: true,
+      click: () => {}
+    });
+  }
+
+  // Model Breakdown section
+  if (vis?.showModelBreakdown !== false && !compactMode) {
+    menuItems.push({ type: 'separator' });
+    menuItems.push({
       label: 'Model Breakdown',
       submenu: createModelBreakdownMenu(stats.modelBreakdown)
-    },
-    { type: 'separator' },
-    {
-      label: 'Test Notification',
-      click: () => {
-        notificationService.notifyTaskComplete('Test task completed!');
-      }
-    },
-    {
-      label: 'Refresh Stats',
-      click: async () => {
-        await analyticsService.refreshStats();
-        updateTrayMenu();
-      }
-    },
-    { type: 'separator' },
-    {
-      label: 'Setup',
-      submenu: [
-        {
-          label: 'Install Hooks...',
-          click: async () => {
-            const result = await installerService.installHooks(hookServer.getPort());
-            dialog.showMessageBox({
-              type: result.success ? 'info' : 'error',
-              title: result.success ? 'Success' : 'Error',
-              message: result.message
-            });
-            updateTrayMenu();
-          }
-        },
-        {
-          label: 'Open Hooks Config',
-          click: () => {
-            installerService.openHooksConfig();
-          }
-        },
-        {
-          label: 'Restore Hooks Backup',
-          click: async () => {
-            const result = await installerService.restoreHooksBackup();
-            dialog.showMessageBox({
-              type: result.success ? 'info' : 'error',
-              title: result.success ? 'Success' : 'Error',
-              message: result.message
-            });
-          }
-        },
-        { type: 'separator' },
-        {
-          label: 'Start at Login',
-          type: 'checkbox',
-          checked: installerService.getLoginItemSettings(),
-          click: () => {
-            const current = installerService.getLoginItemSettings();
-            installerService.setLoginItemSettings(!current);
-            updateTrayMenu();
-          }
-        }
-      ]
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        app.quit();
-      }
-    }
-  ]);
+    });
+  }
 
+  // Bottom actions
+  menuItems.push({ type: 'separator' });
+  menuItems.push({
+    label: 'Refresh Stats',
+    click: async () => {
+      await analyticsService.refreshStats();
+      updateTrayMenu();
+    }
+  });
+  menuItems.push({ type: 'separator' });
+  menuItems.push({
+    label: 'Preferences...',
+    accelerator: 'Command+,',
+    click: () => {
+      preferencesWindow.show();
+    }
+  });
+  menuItems.push({
+    label: 'Quit',
+    click: () => {
+      app.quit();
+    }
+  });
+
+  const contextMenu = Menu.buildFromTemplate(menuItems);
   tray.setContextMenu(contextMenu);
 }
 
@@ -331,7 +286,8 @@ function createModelBreakdownMenu(modelBreakdown: any): any[] {
   if (models.length === 0) {
     return [{
       label: 'No data yet',
-      enabled: false
+      enabled: true,
+      click: () => {}
     }];
   }
 
@@ -342,7 +298,8 @@ function createModelBreakdownMenu(modelBreakdown: any): any[] {
 
     return {
       label: `${model}: ${formatNumber(total)} tokens`,
-      enabled: false
+      enabled: true,
+      click: () => {}
     };
   });
 }

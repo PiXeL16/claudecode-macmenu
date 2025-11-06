@@ -13,6 +13,7 @@ export interface UsageEntry {
   message_id?: string;
   request_id?: string;
   requestId?: string;
+  uuid?: string;
   model: string;
   input_tokens: number;
   output_tokens: number;
@@ -20,6 +21,10 @@ export interface UsageEntry {
   cache_read_tokens?: number;
   cost?: number;
   cost_usd?: number;
+  sessionId?: string;
+  cwd?: string;
+  stop_reason?: string;
+  responseText?: string;
 }
 
 export interface SessionBlock {
