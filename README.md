@@ -1,24 +1,36 @@
 # Claude Code Mac Menu
 
-A macOS menu bar application that enhances Claude Code with comprehensive usage analytics and sound notifications.
+<div align="center">
+
+**A macOS menu bar application that enhances Claude Code with comprehensive usage analytics and real-time notifications**
+
+[Download Latest Release](https://github.com/PiXeL16/claudecode-macmenu/releases/latest) • [View Documentation](./INSTALL.md) • [Report Issues](https://github.com/PiXeL16/claudecode-macmenu/issues)
+
+</div>
 
 ## Features
 
-- 📊 **Detailed Analytics**: Real-time token usage, cost tracking, and burn rate analysis
+- **Comprehensive Analytics Dashboard**: Interactive charts and visualizations (Press `Cmd+A`)
+  - Daily token usage and cost trends
+  - Project-level cost breakdown
+  - Model distribution and usage patterns
+  - Hourly and weekly usage analysis
+  - Cache hit rate and savings tracking
+  - Session duration analytics
+- **Real-Time Notifications**: Hook-based notifications using Claude Code events
+  - Instant alerts when Claude finishes responding (Stop event)
+  - Task agent completion notifications (SubagentStop event)
+  - Tool-specific completion alerts (Bash, Task, etc.)
+  - Event-driven, no polling required
+- **Live Menu Bar Stats**: Quick access to key metrics
   - Token consumption (input, output, cache tokens)
   - Cost tracking with model-specific pricing
   - Burn rate (tokens/min, $/hour)
   - Session tracking (5-hour blocks)
   - Model usage breakdown
-- 🔔 **Hook-Based Notifications**: Real-time notifications using Claude Code hooks
-  - Notifies when Claude finishes responding (Stop event)
-  - Notifies when task agents complete (SubagentStop event)
-  - Notifies when specific tools complete (Bash, Task, etc.)
-  - Event-driven, no polling required
-- 💰 **Cost Monitoring**: Track daily and total spending
-- 📈 **Live Stats**: Auto-updates every 30 seconds
-- 🎛️ **Settings**: Customize notification sounds and preferences
-- 🍎 **Native macOS**: Lives in your menu bar for easy access
+- **Cost Monitoring**: Track daily and total spending across all projects
+- **Customizable Settings**: Dark terminal-style UI with preferences
+- **Native macOS**: Lightweight menu bar app with Clauwd branding
 
 ## Analytics Tracked
 
@@ -46,17 +58,26 @@ A macOS menu bar application that enhances Claude Code with comprehensive usage 
 
 ## Installation
 
-### Via Homebrew (Recommended)
+### Option 1: Download from GitHub (Recommended)
+
+**Latest Release:** [v0.2.0](https://github.com/PiXeL16/claudecode-macmenu/releases/tag/v0.2.0)
+
+1. Download `Claude-Code-Menu-0.2.0-arm64.dmg` from [Releases](https://github.com/PiXeL16/claudecode-macmenu/releases/latest)
+2. Open the DMG file
+3. Drag "Claude Code Menu" to your Applications folder
+4. Launch from Applications or Spotlight
+5. On first launch, you may need to:
+   - Right-click the app and select "Open" (macOS security)
+   - Allow the app to send notifications
+   - The app will prompt you to install Claude Code hooks
+
+### Option 2: Via Homebrew (Coming Soon)
 
 ```bash
 brew install --cask claudecode-macmenu
 ```
 
-### Manual Download
-
-1. Download the latest `.dmg` from [Releases](https://github.com/PiXeL16/claudecode-macmenu/releases)
-2. Open the DMG and drag the app to Applications
-3. Launch from Applications or Spotlight
+*Note: Homebrew cask formula is pending approval*
 
 ## Development
 
@@ -154,29 +175,48 @@ npm run dev
 
 ## Usage
 
-### Menu Features
+### Analytics Dashboard (Cmd+A)
 
-Click the menu bar icon to access:
+The comprehensive analytics dashboard provides deep insights into your Claude Code usage:
 
-**Statistics:**
-- 💬 Messages (today and total)
-- 🎯 Tokens (input, output, cache)
-- 💰 Costs (daily and total)
-- 🔥 Burn Rate (tokens/min, $/hour)
-- 📅 Sessions (5-hour blocks)
-- 📊 Model Breakdown
+**Interactive Charts:**
+- **Daily Token Usage**: Line chart showing token consumption over time
+- **Cost by Project**: Bar chart of spending across different projects
+- **Model Distribution**: Pie chart showing which models you use most
+- **Cumulative Spending**: Area chart tracking total costs over time
+- **Token Type Breakdown**: Pie chart of input/output/cache token distribution
+- **Usage by Hour**: Bar chart showing when you're most active
+- **Usage by Day**: Dual-axis chart of sessions and costs by weekday
+- **Messages Per Day**: Line chart of daily message volume
 
-**Notifications:**
-- Toggle notifications on/off
-- Toggle sound alerts
-- View hook server status
-- Test notifications
+**Summary Cards:**
+- Cache hit rate and total savings
+- Average and longest session durations
+- Total sessions and productivity metrics
 
-**Setup:**
-- Install/update hooks
-- Open hooks configuration
-- Restore hooks backup
-- Configure auto-start at login
+**Time Range Filters:** 7 days, 30 days, 90 days, or all time
+
+### Menu Bar Features
+
+Click the Clauwd menu bar icon to access:
+
+**Live Statistics:**
+- Messages (today and total)
+- Tokens (today, total, and current session)
+- Costs (daily, total, and session)
+- Burn Rate (tokens/min, $/hour in real-time)
+- Sessions (5-hour blocks, daily count)
+- Model Breakdown (submenu with per-model stats)
+
+**Quick Actions:**
+- Analytics Dashboard (Cmd+A)
+- Refresh Stats
+- Preferences (Cmd+,)
+  - Notification settings
+  - Menu visibility options
+  - Compact mode toggle
+  - Auto-start configuration
+- Quit
 
 ## How It Works
 
