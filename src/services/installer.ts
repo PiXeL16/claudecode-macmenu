@@ -14,7 +14,7 @@ export class InstallerService {
 
   constructor() {
     const home = process.env.HOME || process.env.USERPROFILE || '';
-    this.settingsPath = path.join(home, '.claude', 'settings.json');
+    this.settingsPath = path.join(home, '.config', 'claude-code', 'hooks.json');
     this.settingsBackupPath = this.settingsPath + '.backup';
   }
 
@@ -41,20 +41,26 @@ export class InstallerService {
 
   async installHooks(port: number = 3456): Promise<{ success: boolean; message: string }> {
     try {
-      // Backup existing settings if they exist
+      // Ensure the directory exists
+      const dir = path.dirname(this.settingsPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Backup existing hooks configuration if it exists
       if (fs.existsSync(this.settingsPath)) {
         fs.copyFileSync(this.settingsPath, this.settingsBackupPath);
       }
 
-      // Read existing settings
-      let settings: any = {};
+      // Read existing hooks configuration
+      let hooksConfig: any = {};
       if (fs.existsSync(this.settingsPath)) {
         const content = fs.readFileSync(this.settingsPath, 'utf-8');
-        settings = JSON.parse(content);
+        hooksConfig = JSON.parse(content);
       }
 
-      // Update hooks in settings
-      settings.hooks = {
+      // Update hooks configuration
+      hooksConfig.hooks = {
         Stop: [
           {
             matcher: '*',
@@ -90,10 +96,10 @@ export class InstallerService {
         ]
       };
 
-      // Write updated settings
+      // Write updated hooks configuration
       fs.writeFileSync(
         this.settingsPath,
-        JSON.stringify(settings, null, 2),
+        JSON.stringify(hooksConfig, null, 2),
         'utf-8'
       );
 
@@ -142,7 +148,7 @@ export class InstallerService {
 
       return {
         success: true,
-        message: 'Settings backup restored successfully'
+        message: 'Hooks backup restored successfully'
       };
     } catch (error) {
       return {
