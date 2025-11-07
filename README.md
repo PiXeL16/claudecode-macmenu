@@ -24,6 +24,11 @@
 
 *Quick access to live statistics from the menu bar*
 
+### Preferences
+<img src="assets/screenshot3.png" alt="Preferences Window" width="600"/>
+
+*Customize notifications, sounds, and display settings*
+
 </div>
 
 ## Features
