@@ -24,10 +24,10 @@
 
 *Quick access to live statistics from the menu bar*
 
-### Preferences
-<img src="assets/screenshot3.png" alt="Preferences Window" width="600"/>
+### Notifications
+<img src="assets/screenshot3.png" alt="Notification Example" width="400"/>
 
-*Customize notifications, sounds, and display settings*
+*Real-time notifications when Claude finishes tasks*
 
 </div>
 
